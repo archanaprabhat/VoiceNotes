@@ -356,7 +356,7 @@ class StorageManager {
 }
 
 class GroqService {
-    static GROQ_API_KEY = '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'; 
+    static GROQ_API_KEY = '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'; 
     static TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
     static CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -705,15 +705,19 @@ class VoiceNotesApp {
     }
 
     startProgressLoop(pillEl) {
-        const update = () => {
-            if (this.currentAudio && !this.currentAudio.paused) {
-                const percent = (this.currentAudio.currentTime / this.currentAudio.duration) * 100 || 0;
-                this.updatePillProgress(pillEl, percent);
-                this.playbackInterval = requestAnimationFrame(update);
-            }
-        };
-        update();
-    }
+    const update = () => {
+        if (this.currentAudio && !this.currentAudio.paused) {
+            const percent = (this.currentAudio.currentTime / this.currentAudio.duration) * 100 || 0;
+            this.updatePillProgress(pillEl, percent);
+            
+            const remaining = this.currentAudio.duration - this.currentAudio.currentTime;
+            this.updateDurationDisplay(pillEl, remaining);
+            
+            this.playbackInterval = requestAnimationFrame(update);
+        }
+    };
+    update();
+}
     
     handleSeek(e, note, pillEl, container) {
         const wasPlaying = this.currentAudio && !this.currentAudio.paused;
@@ -761,10 +765,34 @@ class VoiceNotesApp {
         }
     }
 
-    resetPillUI(pillEl) {
-        this.setPlayStateUI(pillEl, false);
-        this.updatePillProgress(pillEl, 0);
+    updateDurationDisplay(pillEl, remainingSeconds) {
+    const durationText = pillEl.querySelector('.duration-text');
+    if (durationText && Number.isFinite(remainingSeconds)) {
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = Math.floor(remainingSeconds % 60);
+        durationText.textContent = `${this.pad(minutes)}:${this.pad(seconds)}`;
     }
+}
+
+pad(num) {
+    return num.toString().padStart(2, '0');
+}
+
+    resetPillUI(pillEl) {
+    this.setPlayStateUI(pillEl, false);
+    this.updatePillProgress(pillEl, 0);
+    
+    const noteId = parseInt(pillEl.dataset.id);
+    StorageManager.getAllRecordings().then(recordings => {
+        const note = recordings.find(r => r.id === noteId);
+        if (note) {
+            const durationText = pillEl.querySelector('.duration-text');
+            if (durationText) {
+                durationText.textContent = note.duration;
+            }
+        }
+    });
+}
 
     bindEvents() {
         this.dom.recordBtn.addEventListener('click', () => this.startRecording());
