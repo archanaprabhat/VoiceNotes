@@ -295,3 +295,542 @@ body {
 .icon-btn:active {
     opacity: 0.5;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/*                                 Note Item                                  */
+/* -------------------------------------------------------------------------- */
+.note-item {
+    width: 100%;
+    padding: 0;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.05); /* Subtle separator */
+    padding-bottom: 24px;
+}
+
+.note-item:last-child {
+    border-bottom: none;
+}
+
+/* Meta: Date & Time */
+.note-meta {
+    font-size: 12px;
+    color: #9B9B9B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.note-meta .dot {
+    width: 3px;
+    height: 3px;
+    background-color: #9B9B9B;
+    border-radius: 50%;
+}
+
+/* Title */
+.note-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #000;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+
+
+/* Player & Actions Row */
+.note-footer {
+    display: flex;
+    align-items: center;
+    gap: 16px; /* Gap between player and actions */
+    width: 100%;
+}
+
+/* Player Pill */
+.player-pill {
+    background-color: #f3f4f6;
+    border-radius: 9999px;
+    padding: 8px 16px 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    flex: 1; /* Take remaining space */
+    min-width: 0; /* Prevent overflow */
+    transition: background-color 0.2s;
+}
+
+.player-pill:hover {
+    background-color: #e5e7eb;
+}
+
+.mini-play-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mini-play-icon {
+    width: 16px;
+    height: 16px;
+    fill: #000;
+}
+
+/* Scrubber / Progress Bar */
+.mini-progress-container {
+    flex: 1;
+    height: 24px; /* Hit area height */
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    margin: 0 4px;
+}
+
+.mini-progress-track {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 2px;
+    position: relative;
+}
+
+.mini-progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%; /* Dynamic */
+    background-color: #000;
+    border-radius: 2px;
+}
+
+.mini-progress-knob {
+    position: absolute;
+    left: 0%; /* Dynamic matches width */
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background-color: #000;
+    border-radius: 50%;
+    opacity: 1; /* Always visible based on image */
+    pointer-events: none; /* Let clicks pass to container */
+}
+
+.duration-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+/* Right Actions Group */
+.action-group {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.action-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #f3f4f6;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s;
+}
+
+.action-icon-btn:hover {
+    background-color: #e5e7eb;
+    color: #000;
+}
+
+.action-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    pointer-events: none;
+}
+
+/* Note Item */
+.note-item {
+    width: 100%;
+    padding: 0;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding-bottom: 24px;
+}
+
+.note-item:last-child {
+    border-bottom: none;
+}
+
+/* Meta: Date & Time */
+.note-meta {
+    font-size: 12px;
+    color: #9B9B9B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.note-meta .dot {
+    width: 3px;
+    height: 3px;
+    background-color: #9B9B9B;
+    border-radius: 50%;
+}
+
+/* Title */
+.note-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #000;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+/* Transcript (if exists) */
+.note-transcript {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    max-height: 60px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.note-transcript.expanded {
+    max-height: 1000px;
+}
+
+/* Player & Actions Row */
+.note-footer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+/* Player Pill */
+.player-pill {
+    background-color: #f3f4f6;
+    border-radius: 9999px;
+    padding: 8px 16px 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+    transition: background-color 0.2s;
+}
+
+.player-pill:hover {
+    background-color: #e5e7eb;
+}
+
+.mini-play-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mini-play-icon {
+    width: 16px;
+    height: 16px;
+    fill: #000;
+}
+
+.play-symbol { }
+
+.pause-symbol { }
+
+.hidden {
+    display: none !important;
+}
+
+/* Scrubber / Progress Bar */
+.mini-progress-container {
+    flex: 1;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    margin: 0 4px;
+}
+
+.mini-progress-track {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 2px;
+    position: relative;
+}
+
+.mini-progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0%;
+    background-color: #000;
+    border-radius: 2px;
+}
+
+.mini-progress-knob {
+    position: absolute;
+    left: 0%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background-color: #000;
+    border-radius: 50%;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.duration-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+/* Right Actions Group */
+.action-group {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.action-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #f3f4f6;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #333;
+    transition: all 0.2s;
+}
+
+.action-icon-btn:hover {
+    background-color: #e5e7eb;
+    color: #000;
+}
+
+.action-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+    pointer-events: none;
+}
+
+.more-btn { }
+
+/* Dropdowns */
+.dropdown-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05);
+    min-width: 180px;
+    z-index: 50;
+    padding: 4px;
+    display: none;
+    animation: fadeIn 0.1s ease-out;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    border-radius: 8px;
+    transition: background-color 0.15s;
+    font-family: var(--font-family);
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+}
+
+
+
+/* Delete Confirmation */
+.delete-confirmation {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05);
+    padding: 16px;
+    width: 260px;
+    z-index: 60;
+    display: none;
+    animation: fadeIn 0.1s ease-out;
+}
+
+.delete-confirmation.show {
+    display: block;
+}
+
+.confirm-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-delete-confirm {
+    background-color: #d93025;
+    color: white;
+    border: none;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+    transition: background-color 0.2s;
+}
+
+.btn-delete-confirm:hover {
+    background-color: #b91c1c;
+}
+
+.btn-cancel {
+    background-color: #f3f3f3;
+    color: var(--text-primary);
+    border: none;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+    transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+    background-color: #e5e5e5;
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 110px; /* Positioned above the recording bar */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+
+.toast {
+    background-color: #111111;
+    color: white;
+    padding: 10px 24px;
+    border-radius: 99px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: 10px;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.toast svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
