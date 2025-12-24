@@ -540,7 +540,7 @@ class VoiceNotesApp {
                         <!-- Player Pill -->
                         <div class="player-pill" data-id="${note.id}">
                             <div class="mini-play-btn">
-                                <svg class="mini-play-icon play-symbol" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                <svg class="mini-play-icon play-symbol" width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" id="playBtn-z2DCpAJd" style="display: block;"><path class="dark:fill-greyEE dark:stroke-greyEE" d="M8 18L8 6L18.6667 11.3333L8 18Z" fill="black" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
                                 <svg class="mini-play-icon pause-symbol hidden" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                             </div>
                             
@@ -557,24 +557,24 @@ class VoiceNotesApp {
                         <!-- Action Buttons -->
                         <div class="action-group">
                             <button class="action-icon-btn" title="Summary">
-                                <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                                <img src="./assets/summary.svg" alt="Summary">
                             </button>
-                            <button class="action-icon-btn" title="Ask AI">
-                                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V7h2v4z"/></svg>
+                            <button class="action-icon-btn" title="Edit">
+                                <img src="./assets/edit.svg" alt="Edit">
                             </button>
                             <button class="action-icon-btn" title="Share">
-                                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                                <img src="./assets/share.svg" alt="Share">
                             </button>
                                                         
                             <!-- Dropdown Wrapper for More Menu -->
                             <div class="dropdown-wrapper">
                                 <button class="action-icon-btn more-btn" title="More">
-                                    <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                                    <img src="./assets/more_icon.svg" alt="More">
                                 </button>
                                 
                                 <div class="dropdown-menu">
                                     <button class="dropdown-item delete-option">
-                                        <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                        <svg data-v-50cbeda8="" width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="stroke-red38" d="M2.12891 3.76172L2.61433 12.9847C2.64239 13.518 2.65643 13.7846 2.76917 13.9871C2.86841 14.1653 3.01978 14.3089 3.20299 14.3987C3.41111 14.5006 3.67811 14.5006 4.21212 14.5006H9.08898C9.62299 14.5006 9.88999 14.5006 10.0981 14.3987C10.2813 14.3089 10.4327 14.1653 10.5319 13.9871C10.6447 13.7846 10.6587 13.518 10.6868 12.9847L11.1722 3.76172" stroke="#9B9B9B" stroke-width="1.1" stroke-linejoin="round"></path><path class="stroke-red38" d="M4.05078 4.32617V3.10014C4.05078 2.54009 4.05078 2.26007 4.15977 2.04615C4.25565 1.85799 4.40863 1.70501 4.59679 1.60914C4.8107 1.50014 5.09073 1.50014 5.65078 1.50014H7.65155C8.21161 1.50014 8.49163 1.50014 8.70554 1.60914C8.89371 1.70501 9.04669 1.85799 9.14256 2.04615C9.25155 2.26007 9.25155 2.54009 9.25155 3.10014V4.32617" stroke="#" stroke-width="1.1" stroke-linejoin="round"></path><path class="stroke-red38" d="M1 3.76172H12.3041" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M6.65234 6.02246V11.6745" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M6.65625 6.02051V12.2378" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M8.91749 6.02051L8.69141 12.2378" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M4.39844 6.02051L4.62452 12.2378" stroke="#9B9B9B" stroke-linecap="round"></path></svg>
                                         Delete
                                     </button>
                                 </div>
