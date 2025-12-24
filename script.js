@@ -44,6 +44,236 @@ class Timer {
     }
 }
 
+class Visualizer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+
+        this.audioContext = null;
+        this.analyser = null;
+        this.source = null;
+        this.animationId = null;
+        this.isActive = false;
+
+        // Wave physics parameters
+        this.waves = [
+            { speed: 0.0008, amplitude: 0.15, frequency: 1.5, phase: 0 },
+            { speed: 0.0006, amplitude: 0.12, frequency: 2.2, phase: Math.PI / 3 },
+            { speed: 0.0010, amplitude: 0.10, frequency: 1.8, phase: Math.PI / 2 },
+            { speed: 0.0005, amplitude: 0.08, frequency: 2.5, phase: Math.PI }
+        ];
+
+        // Audio envelope tracking
+        this.smoothedLevel = 0;
+        this.targetLevel = 0;
+        this.peakLevel = 0;
+        
+        // Frequency band tracking for natural response
+        this.freqBands = new Float32Array(3); // low, mid, high
+        this.smoothedBands = new Float32Array(3);
+
+        // Wave displacement for continuous flow
+        this.timeOffset = 0;
+        this.lastTime = performance.now();
+
+        // Dynamic amplitude multiplier
+        this.baseAmplitude = 0.3; // Always alive baseline
+        this.dynamicAmplitude = 0;
+    }
+
+    setup(stream) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256; 
+        this.analyser.smoothingTimeConstant = 0.3; 
+
+        this.source = this.audioContext.createMediaStreamSource(stream);
+        this.source.connect(this.analyser);
+
+        this.isActive = true;
+        this.lastTime = performance.now();
+        this.draw();
+    }
+
+    analyzeAudio() {
+        const bufferLength = this.analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const timeData = new Uint8Array(this.analyser.fftSize);
+        
+        this.analyser.getByteFrequencyData(dataArray);
+        this.analyser.getByteTimeDomainData(timeData);
+
+        // Calculate RMS from time domain for overall energy
+        let sum = 0;
+        for (let i = 0; i < timeData.length; i++) {
+            const v = (timeData[i] - 128) / 128;
+            sum += v * v;
+        }
+        const rms = Math.sqrt(sum / timeData.length);
+
+        // Extract frequency bands for natural wave modulation
+        const lowEnd = Math.floor(bufferLength * 0.1);
+        const midEnd = Math.floor(bufferLength * 0.4);
+        
+        let lowSum = 0, midSum = 0, highSum = 0;
+        
+        for (let i = 0; i < lowEnd; i++) {
+            lowSum += dataArray[i];
+        }
+        for (let i = lowEnd; i < midEnd; i++) {
+            midSum += dataArray[i];
+        }
+        for (let i = midEnd; i < bufferLength; i++) {
+            highSum += dataArray[i];
+        }
+
+        this.freqBands[0] = (lowSum / lowEnd) / 255;
+        this.freqBands[1] = (midSum / (midEnd - lowEnd)) / 255;
+        this.freqBands[2] = (highSum / (bufferLength - midEnd)) / 255;
+
+        // Smooth frequency bands for fluid motion
+        for (let i = 0; i < 3; i++) {
+            const diff = this.freqBands[i] - this.smoothedBands[i];
+            this.smoothedBands[i] += diff * 0.15;
+        }
+
+        return rms;
+    }
+
+    draw() {
+        if (!this.isActive) return;
+
+        this.animationId = requestAnimationFrame(this.draw.bind(this));
+
+        const now = performance.now();
+        const deltaTime = now - this.lastTime;
+        this.lastTime = now;
+
+        // Analyze audio input
+        const rms = this.analyzeAudio();
+
+        // Ultra-smooth envelope with physics-based attack/release
+        const attack = 0.08;
+        const release = 0.03;
+        const k = rms > this.smoothedLevel ? attack : release;
+        this.smoothedLevel += (rms - this.smoothedLevel) * k;
+
+        // Track peak for dynamic range
+        this.peakLevel = Math.max(this.peakLevel * 0.99, this.smoothedLevel);
+
+        // Dynamic amplitude: baseline + voice surge
+        const voiceEnergy = this.peakLevel > 0.01 
+            ? (this.smoothedLevel / this.peakLevel) 
+            : 0;
+        
+        this.targetLevel = this.baseAmplitude + voiceEnergy * 2.5;
+        this.dynamicAmplitude += (this.targetLevel - this.dynamicAmplitude) * 0.08;
+
+        // Update time offset for continuous horizontal flow
+        this.timeOffset += deltaTime;
+
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        const centerY = this.canvas.height / 2;
+        const maxHeight = this.canvas.height * 0.4;
+
+        // Create gradient
+        const gradient = this.ctx.createLinearGradient(
+            0,
+            centerY - maxHeight,
+            0,
+            centerY + maxHeight
+        );
+        gradient.addColorStop(0, 'rgba(30,100,255,0.2)');
+        gradient.addColorStop(0.5, 'rgba(30,100,255,0.85)');
+        gradient.addColorStop(1, 'rgba(30,100,255,0.15)');
+
+        this.ctx.fillStyle = gradient;
+
+        // Draw composite wave with multiple layers
+        const resolution = 128;
+        const segmentWidth = this.canvas.width / resolution;
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, this.canvas.height);
+
+        // Generate wave points
+        for (let i = 0; i <= resolution; i++) {
+            const x = i * segmentWidth;
+            const t = i / resolution;
+
+            let yOffset = 0;
+
+            // Composite multiple sine waves with frequency band modulation
+            this.waves.forEach((wave, idx) => {
+                const bandMod = this.smoothedBands[idx % 3];
+                const phaseShift = wave.phase + this.timeOffset * wave.speed;
+                
+                // Multiple frequencies create organic water-like motion
+                const primaryWave = Math.sin(t * Math.PI * wave.frequency + phaseShift);
+                const secondaryWave = Math.sin(t * Math.PI * wave.frequency * 1.7 + phaseShift * 1.3);
+                
+                // Combine waves with band modulation
+                const combined = (primaryWave * 0.7 + secondaryWave * 0.3);
+                const modulated = combined * (1 + bandMod * 0.5);
+                
+                yOffset += modulated * wave.amplitude;
+            });
+
+            // Apply dynamic amplitude (baseline + voice surge)
+            const amplitude = maxHeight * this.dynamicAmplitude;
+            const y = centerY + yOffset * amplitude;
+
+            if (i === 0) {
+                this.ctx.lineTo(x, y);
+            } else {
+                // Smooth curves using quadratic bezier
+                const prevX = (i - 1) * segmentWidth;
+                const prevT = (i - 1) / resolution;
+                
+                let prevYOffset = 0;
+                this.waves.forEach((wave, idx) => {
+                    const bandMod = this.smoothedBands[idx % 3];
+                    const phaseShift = wave.phase + this.timeOffset * wave.speed;
+                    const primaryWave = Math.sin(prevT * Math.PI * wave.frequency + phaseShift);
+                    const secondaryWave = Math.sin(prevT * Math.PI * wave.frequency * 1.7 + phaseShift * 1.3);
+                    const combined = (primaryWave * 0.7 + secondaryWave * 0.3);
+                    const modulated = combined * (1 + bandMod * 0.5);
+                    prevYOffset += modulated * wave.amplitude;
+                });
+                
+                const prevY = centerY + prevYOffset * amplitude;
+                
+                const cpX = (prevX + x) / 2;
+                const cpY = (prevY + y) / 2;
+                
+                this.ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
+            }
+        }
+
+        // Complete the fill shape
+        this.ctx.lineTo(this.canvas.width, this.canvas.height);
+        this.ctx.closePath();
+        this.ctx.fill();
+    }
+
+    stop() {
+        this.isActive = false;
+
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+
+        if (this.audioContext && this.audioContext.state !== 'closed') {
+            this.audioContext.close();
+        }
+
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
 
 class StorageManager {
     static get DB_NAME() { return 'VoiceNotesDB'; }
@@ -75,7 +305,7 @@ class StorageManager {
         });
     }
 
-     static async updateRecord(id, updates) {
+    static async updateRecord(id, updates) {
         const db = await this.openDB();
         return new Promise((resolve, reject) => {
             const tx = db.transaction([this.STORE_NAME], 'readwrite');
@@ -108,13 +338,13 @@ class StorageManager {
         });
     }
 
-
     static async getAllRecordings() {
         const db = await this.openDB();
         return new Promise((resolve, reject) => {
             const tx = db.transaction([this.STORE_NAME], 'readonly');
             const store = tx.objectStore(this.STORE_NAME);
             const request = store.getAll();
+
             request.onsuccess = () => {
                 const results = request.result;
                 results.sort((a, b) => b.timestamp - a.timestamp);
@@ -122,6 +352,76 @@ class StorageManager {
             };
             request.onerror = () => reject(request.error);
         });
+    }
+}
+
+class GroqService {
+    static GROQ_API_KEY = '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'; 
+    static TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+    static CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+    static async transcribeAudio(audioBlob) {
+        try {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'audio.webm');
+            formData.append('model', 'whisper-large-v3');
+            formData.append('response_format', 'json');
+
+            const response = await fetch(this.TRANSCRIPTION_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.GROQ_API_KEY}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Transcription failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.text || '';
+        } catch (error) {
+            console.error('Transcription error:', error);
+            return 'Transcription failed';
+        }
+    }
+
+    static async generateTitle(transcript) {
+        try {
+            const response = await fetch(this.CHAT_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.GROQ_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a helpful assistant that generates concise, descriptive titles for voice notes. Generate a title that is 3-6 words long, capturing the main topic or theme of the transcript. Return only the title, nothing else.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Generate a title for this transcript:\n\n${transcript}`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 20
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Title generation failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0]?.message?.content?.trim() || 'Untitled Note';
+        } catch (error) {
+            console.error('Title generation error:', error);
+            return 'Untitled Note';
+        }
     }
 }
 
@@ -145,18 +445,38 @@ class ToastManager {
     }
 }
 
-
-class VoiceRecorder {
+class VoiceNotesApp {
     constructor() {
+        // UI states
         this.toastManager = new ToastManager();
         this.state = 'IDLE';
         this.isMenuExpanded = false;
+        this.expandedNoteId = null; // Track which note's transcript is expanded
+        
+        // Core Logic -- Recording
         this.mediaRecorder = null;
         this.audioChunks = [];
         this.saveOnStop = false;
+        
+        // Core Logic -- Playback
+        this.currentAudio = null;
+        this.currentlyPlayingId = null;
+        this.playbackInterval = null;
 
+        // Helpers -- UI
         this.cacheDOM();
         this.timer = new Timer(this.dom.timerDisplay);
+        this.visualizer = new Visualizer(this.dom.canvas);
+
+        // Global click to close dropdowns
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown-wrapper')) {
+                document.querySelectorAll('.dropdown-menu.show, .delete-confirmation.show').forEach(el => {
+                    el.classList.remove('show');
+                });
+            }
+        });
+        
         this.bindEvents();
         this.renderNotesList();
     }
@@ -166,23 +486,29 @@ class VoiceRecorder {
             recordBtn: document.getElementById('record-btn'),
             idleView: document.getElementById('idle-view'),
             recordingView: document.getElementById('recording-view'),
+            notesList: document.getElementById('notes-list'),
+            
+            // Menu
             chevronBtn: document.getElementById('chevron-btn'),
             chevronUp: document.getElementById('chevron-up'),
             chevronDown: document.getElementById('chevron-down'),
             expandedMenu: document.getElementById('expanded-menu'),
             cancelBtn: document.getElementById('cancel-btn'),
             addNoteBtn: document.getElementById('add-note-btn'),
+            
+            // Interaction
             recordingPill: document.getElementById('recording-pill'),
             pauseIcon: document.getElementById('pause-icon'),
             playIcon: document.getElementById('play-icon'),
             doneBtn: document.getElementById('done-btn'),
+            
+            // Display
             timerDisplay: document.getElementById('timer'),
-
-            notesList: document.getElementById('notes-list'),
+            canvas: document.getElementById('waveform')
         };
     }
 
-        async renderNotesList() {
+    async renderNotesList() {
         try {
             const recordings = await StorageManager.getAllRecordings();
             this.dom.notesList.innerHTML = '';
@@ -196,6 +522,9 @@ class VoiceRecorder {
                 const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
+                const isProcessing = note.title === "processing";
+                const hasTranscript = note.transcript && note.transcript !== "processing";
+                const isExpanded = this.expandedNoteId === note.id;
 
                 noteEl.innerHTML = `
                     <div class="note-meta">
@@ -204,8 +533,9 @@ class VoiceRecorder {
                         <span>${timeStr}</span>
                     </div>
                     
-                    <div class="note-title">${note.title}</div>
-                    
+                    <div class="note-title">${note.title}${isProcessing ? "..." : ""}</div>
+                    ${hasTranscript ? `<div class="note-transcript ${isExpanded ? 'expanded' : ''}">${note.transcript}</div>` : ''}
+
                     <div class="note-footer">
                         <!-- Player Pill -->
                         <div class="player-pill" data-id="${note.id}">
@@ -261,7 +591,7 @@ class VoiceRecorder {
                     </div>
                 `;
                 
-                
+                // Bind Events
                 const playBtn = noteEl.querySelector('.mini-play-btn');
                 const seekContainer = noteEl.querySelector('.mini-progress-container');
                 const pill = noteEl.querySelector('.player-pill');
@@ -276,14 +606,14 @@ class VoiceRecorder {
                     this.handleSeek(e, note, pill, seekContainer);
                 });
 
-               
+                // Click on note item to expand/collapse transcript
                 noteEl.addEventListener('click', () => {
                     if (hasTranscript) {
                         this.toggleTranscript(note.id);
                     }
                 });
 
-                
+                // Bind Dropdown/Delete Events
                 const moreBtn = noteEl.querySelector('.more-btn');
                 const menu = noteEl.querySelector('.dropdown-menu');
                 const deleteOption = noteEl.querySelector('.delete-option');
@@ -295,11 +625,11 @@ class VoiceRecorder {
                     e.stopPropagation();
                     const isCurrentlyOpen = menu.classList.contains('show');
 
-                   
+                    // 1. Force close ALL dropdowns properly
                     document.querySelectorAll('.dropdown-menu.show').forEach(el => el.classList.remove('show'));
                     document.querySelectorAll('.delete-confirmation.show').forEach(el => el.classList.remove('show'));
 
-                    
+                    // 2. Toggle current one ONLY if it wasn't open
                     if (!isCurrentlyOpen) {
                         menu.classList.add('show');
                     }
@@ -330,7 +660,16 @@ class VoiceRecorder {
         }
     }
 
-     togglePlayback(note, pillEl) {
+    toggleTranscript(noteId) {
+        if (this.expandedNoteId === noteId) {
+            this.expandedNoteId = null;
+        } else {
+            this.expandedNoteId = noteId;
+        }
+        this.renderNotesList();
+    }
+
+    togglePlayback(note, pillEl) {
         if (this.currentAudio && this.currentlyPlayingId !== note.id) {
             this.currentAudio.pause();
             const prevPill = document.querySelector(`.player-pill[data-id="${this.currentlyPlayingId}"]`);
@@ -433,7 +772,7 @@ class VoiceRecorder {
         this.dom.cancelBtn.addEventListener('click', () => this.stopRecording(false));
         this.dom.recordingPill.addEventListener('click', () => this.togglePause());
         this.dom.chevronBtn.addEventListener('click', () => this.toggleMenu());
-        this.dom.addNoteBtn.addEventListener('click', () => console.log('Add note feature coming soon'));
+        this.dom.addNoteBtn.addEventListener('click', () => console.log('Add note clicked (Feature pending)'));
     }
 
     toggleMenu() {
@@ -447,6 +786,7 @@ class VoiceRecorder {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             
+            this.visualizer.setup(stream);
             this.mediaRecorder = new MediaRecorder(stream);
             this.audioChunks = [];
             this.saveOnStop = false;
@@ -455,13 +795,13 @@ class VoiceRecorder {
                 if (e.data.size > 0) this.audioChunks.push(e.data);
             };
             
-                this.mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-                    if (this.saveOnStop) {
-                        await this.saveRecording(audioBlob);
-                    }
-                    this.cleanup();
-                };
+            this.mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                if (this.saveOnStop) {
+                    await this.saveRecording(audioBlob);
+                }
+                this.cleanup();
+            };
 
             this.mediaRecorder.start();
             this.updateState('RECORDING');
@@ -471,7 +811,6 @@ class VoiceRecorder {
 
         } catch (err) {
             console.error('Microphone access denied:', err);
-            alert('Microphone access is required to record audio.');
         }
     }
 
@@ -496,11 +835,12 @@ class VoiceRecorder {
         }
     }
 
-   async saveRecording(blob) {
+    async saveRecording(blob) {
         const now = new Date();
         const record = {
             blob: blob,
-            title: "Mock title",
+            title: "processing",
+            transcript: "processing",
             date: now.toLocaleDateString(),
             time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             duration: this.timer.getDurationString(),
@@ -511,19 +851,56 @@ class VoiceRecorder {
             const recordId = await StorageManager.saveRecord(record);
             console.log('Saved with ID:', recordId);
             await this.renderNotesList();
+
+            // Process in background
+            this.processRecording(recordId, blob);
         } catch (error) {
             console.error('Save failed:', error);
+        }
+    }
+
+    async processRecording(recordId, blob) {
+        try {
+            // Step 1: Transcribe
+            console.log('Starting transcription...');
+            const transcript = await GroqService.transcribeAudio(blob);
+            console.log('Transcript:', transcript);
+
+            // Step 2: Generate title
+            console.log('Generating title...');
+            const title = await GroqService.generateTitle(transcript);
+            console.log('Title:', title);
+
+            // Step 3: Update database
+            await StorageManager.updateRecord(recordId, {
+                transcript: transcript,
+                title: title
+            });
+
+            // Step 4: Refresh UI
+            await this.renderNotesList();
+            console.log('Processing complete!');
+        } catch (error) {
+            console.error('Processing error:', error);
+            // Update with error state
+            await StorageManager.updateRecord(recordId, {
+                transcript: 'Processing failed',
+                title: 'Untitled Note'
+            });
+            await this.renderNotesList();
         }
     }
 
     cleanup() {
         this.updateState('IDLE');
         this.timer.reset();
+        this.visualizer.stop();
         
         if (this.mediaRecorder && this.mediaRecorder.stream) {
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
         }
         this.audioChunks = [];
+        this.isPaused = false;
         
         if (this.isMenuExpanded) this.toggleMenu();
     }
@@ -545,8 +922,5 @@ class VoiceRecorder {
     }
 }
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    new VoiceRecorder();
-    console.log('Voice Recorder initialized');
-});
+// Init
+document.addEventListener('DOMContentLoaded', () => new VoiceNotesApp());
