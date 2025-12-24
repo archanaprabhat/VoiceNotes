@@ -3,12 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voicenotes</title>
+    <title>Voice Recorder</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>Voicenotes</h1>
-    </header>
+    <!-- Bottom Recording Bar -->
+    <div class="recording-bar" id="app-container">
+        
+        <!-- State: Idle -->
+        <div id="idle-view" class="view active">
+            <div class="record-card-wrapper">
+                <button id="record-btn" class="record-button">
+                    Record
+                </button>
+            </div>
+        </div>
+
+        <!-- State: Recording / Paused -->
+        <div id="recording-view" class="view hidden">
+            <div class="recording-card">
+                
+                <!-- Chevron Toggle (Circle) -->
+                <button id="chevron-btn" class="chevron-circle">
+                    <!-- Up Icon (Default) -->
+                    <svg id="chevron-up" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#717171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m18 15-6-6-6 6"/>
+                    </svg>
+                    <!-- Down Icon (Hidden) -->
+                    <svg id="chevron-down" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#717171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+
+                <!-- Expanded Menu Options (Hidden by default) -->
+                <div id="expanded-menu" class="expanded-menu hidden">
+                    <button id="cancel-btn" class="menu-btn cancel-style">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18"/>
+                            <path d="m6 6 12 12"/>
+                        </svg>
+                        Cancel
+                    </button>
+                    <button id="add-note-btn" class="menu-btn note-style">
+                        Add a note
+                    </button>
+                </div>
+
+                <!-- Top Pill: Waveform + Timer + Pause/Resume Toggle -->
+                <div id="recording-pill" class="recording-pill">
+                    <!-- Click to Pause/Resume -->
+                    <button id="pause-resume-btn" class="icon-btn">
+                        <svg id="pause-icon" class="icon" viewBox="0 0 24 24">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                        <svg id="play-icon" class="icon hidden" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </button>
+                    
+                    <span id="timer">00:00</span>
+                
+                </div>
+
+                <!-- Bottom Pill: Done Button -->
+                <button id="done-btn" class="done-btn">
+                    Done
+                </button>
+
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
