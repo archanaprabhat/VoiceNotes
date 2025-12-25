@@ -1225,3 +1225,200 @@ pad(num) {
 
 // Init
 document.addEventListener('DOMContentLoaded', () => new VoiceNotesApp());
+// Calendar Manager Class
+class CalendarManager {
+    constructor() {
+        this.currentDate = new Date();
+        this.currentMonth = this.currentDate.getMonth();
+        this.currentYear = this.currentDate.getFullYear();
+        this.isHighlightsVisible = false;
+        
+        this.dom = {
+            calendarBtn: document.querySelector('[title="Calendar"]'),
+            calendarPopover: document.getElementById('calendar-popover'),
+            calendarBackdrop: document.getElementById('calendar-backdrop'),
+            calendarMonth: document.getElementById('calendar-month'),
+            calendarYear: document.getElementById('calendar-year'),
+            calendarGrid: document.getElementById('calendar-grid'),
+            prevMonthBtn: document.getElementById('prev-month-btn'),
+            nextMonthBtn: document.getElementById('next-month-btn'),
+            highlightsToggleBtn: document.getElementById('highlights-toggle-btn'),
+            highlightsToggleText: document.getElementById('highlights-toggle-text'),
+            highlightsContainer: document.getElementById('highlights-container')
+        };
+        
+        this.monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        
+        // Sample days with notes (for demo purposes - days 22-25 in current month)
+        this.daysWithNotes = [22, 23, 24, 25];
+        
+        this.bindEvents();
+        this.renderCalendar();
+    }
+    
+    bindEvents() {
+        // Toggle calendar visibility
+        this.dom.calendarBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleCalendar();
+        });
+        
+        // Close calendar when clicking outside or on backdrop
+        document.addEventListener('click', (e) => {
+            if (!this.dom.calendarPopover.contains(e.target) && 
+                !this.dom.calendarBtn.contains(e.target)) {
+                this.closeCalendar();
+            }
+        });
+        
+        // Close on backdrop click
+        this.dom.calendarBackdrop.addEventListener('click', () => {
+            this.closeCalendar();
+        });
+        
+        // Month navigation
+        this.dom.prevMonthBtn.addEventListener('click', () => this.previousMonth());
+        this.dom.nextMonthBtn.addEventListener('click', () => this.nextMonth());
+        
+        // Highlights toggle
+        this.dom.highlightsToggleBtn.addEventListener('click', () => this.toggleHighlights());
+    }
+    
+    toggleCalendar() {
+        const isHidden = this.dom.calendarPopover.classList.contains('hidden');
+        if (isHidden) {
+            this.dom.calendarPopover.classList.remove('hidden');
+            this.dom.calendarBackdrop.classList.remove('hidden');
+        } else {
+            this.closeCalendar();
+        }
+    }
+    
+    closeCalendar() {
+        this.dom.calendarPopover.classList.add('hidden');
+        this.dom.calendarBackdrop.classList.add('hidden');
+    }
+    
+    toggleHighlights() {
+        this.isHighlightsVisible = !this.isHighlightsVisible;
+        
+        if (this.isHighlightsVisible) {
+            this.dom.highlightsContainer.classList.remove('hidden');
+            this.dom.highlightsToggleText.textContent = 'Hide highlights';
+        } else {
+            this.dom.highlightsContainer.classList.add('hidden');
+            this.dom.highlightsToggleText.textContent = 'View highlights';
+        }
+    }
+    
+    previousMonth() {
+        this.currentMonth--;
+        if (this.currentMonth < 0) {
+            this.currentMonth = 11;
+            this.currentYear--;
+        }
+        this.renderCalendar();
+        this.updateNavigationButtons();
+    }
+    
+    nextMonth() {
+        this.currentMonth++;
+        if (this.currentMonth > 11) {
+            this.currentMonth = 0;
+            this.currentYear++;
+        }
+        this.renderCalendar();
+        this.updateNavigationButtons();
+    }
+    
+    updateNavigationButtons() {
+        const today = new Date();
+        const isCurrentMonth = this.currentMonth === today.getMonth() && 
+                              this.currentYear === today.getFullYear();
+        
+        // Disable next button if we're in current month
+        if (isCurrentMonth) {
+            this.dom.nextMonthBtn.classList.add('disabled');
+        } else {
+            this.dom.nextMonthBtn.classList.remove('disabled');
+        }
+    }
+    
+    renderCalendar() {
+        // Update month and year display
+        this.dom.calendarMonth.textContent = this.monthNames[this.currentMonth];
+        this.dom.calendarYear.textContent = this.currentYear;
+        
+        // Clear existing calendar
+        this.dom.calendarGrid.innerHTML = '';
+        
+        // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+        const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+        // Adjust to make Monday = 0
+        const firstDayAdjusted = firstDay === 0 ? 6 : firstDay - 1;
+        
+        // Get number of days in month
+        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        
+        // Get today's date for highlighting
+        const today = new Date();
+        const isCurrentMonth = this.currentMonth === today.getMonth() && 
+                              this.currentYear === today.getFullYear();
+        const todayDate = today.getDate();
+        
+        // Create calendar grid
+        let dayCounter = 1;
+        let totalWeeks = Math.ceil((firstDayAdjusted + daysInMonth) / 7);
+        
+        for (let week = 0; week < totalWeeks; week++) {
+            const weekRow = document.createElement('div');
+            weekRow.className = 'calendar-week';
+            
+            for (let day = 0; day < 7; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                
+                // Calculate if this cell should have a day number
+                const cellIndex = week * 7 + day;
+                
+                if (cellIndex >= firstDayAdjusted && dayCounter <= daysInMonth) {
+                    dayCell.textContent = dayCounter;
+                    
+                    // Check if this day has notes
+                    if (this.daysWithNotes.includes(dayCounter)) {
+                        dayCell.classList.add('has-notes');
+                        dayCell.addEventListener('click', () => {
+                            console.log(`Clicked on day ${dayCounter}`);
+                            // Navigate to day view or show notes for this day
+                        });
+                    }
+                    
+                    // Highlight today
+                    if (isCurrentMonth && dayCounter === todayDate) {
+                        dayCell.classList.add('today');
+                    }
+                    
+                    dayCounter++;
+                } else {
+                    dayCell.classList.add('invisible');
+                }
+                
+                weekRow.appendChild(dayCell);
+            }
+            
+            this.dom.calendarGrid.appendChild(weekRow);
+        }
+        
+        this.updateNavigationButtons();
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        new CalendarManager();
+    }, 100);
+});
