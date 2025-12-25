@@ -180,18 +180,8 @@ class Visualizer {
         const centerY = this.canvas.height / 2;
         const maxHeight = this.canvas.height * 0.35;
 
-        // Create gradient
-        const gradient = this.ctx.createLinearGradient(
-            0,
-            centerY - maxHeight,
-            0,
-            centerY + maxHeight
-        );
-        gradient.addColorStop(0, 'rgba(30,100,255,0.2)');
-        gradient.addColorStop(0.5, 'rgba(30,100,255,0.85)');
-        gradient.addColorStop(1, 'rgba(30,100,255,0.15)');
-
-        this.ctx.fillStyle = gradient;
+        // Solid color instead of gradient
+        this.ctx.fillStyle = '#5b8fe7ff';
 
         // Draw composite wave with multiple layers
         const resolution = 128;
@@ -906,10 +896,13 @@ pad(num) {
     togglePause() {
         if (this.state === 'RECORDING') {
             this.mediaRecorder.pause();
+            this.visualizer.isActive = false; 
             this.updateState('PAUSED');
             this.timer.stop();
         } else if (this.state === 'PAUSED') {
             this.mediaRecorder.resume();
+            this.visualizer.isActive = true;
+            this.visualizer.draw();
             this.updateState('RECORDING');
             this.timer.start();
         }
