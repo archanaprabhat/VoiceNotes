@@ -843,6 +843,58 @@ pad(num) {
             });
         }
 
+        // Search Modal Functionality
+        const searchInput = document.querySelector('.search-input');
+        const searchModal = document.getElementById('search-modal');
+        const searchModalInput = document.getElementById('search-modal-input');
+        const searchCancelBtn = document.getElementById('search-cancel-btn');
+        const searchModalOverlay = document.querySelector('.search-modal-overlay');
+        const searchPlaceholder = document.getElementById('search-placeholder');
+        const searchResults = document.getElementById('search-results');
+
+        // Open search modal when clicking on main search input
+        if (searchInput) {
+            searchInput.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.openSearchModal();
+            });
+            
+            // Make search input readonly to prevent keyboard on mobile
+            searchInput.setAttribute('readonly', 'true');
+        }
+
+        // Ctrl+K keyboard shortcut to open search
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                this.openSearchModal();
+            }
+            
+            // Escape key to close search modal
+            if (e.key === 'Escape' && searchModal && !searchModal.classList.contains('hidden')) {
+                this.closeSearchModal();
+            }
+        });
+
+        // Close search modal handlers
+        if (searchCancelBtn) {
+            searchCancelBtn.addEventListener('click', () => {
+                this.closeSearchModal();
+            });
+        }
+
+        if (searchModalOverlay) {
+            searchModalOverlay.addEventListener('click', () => {
+                this.closeSearchModal();
+            });
+        }
+
+        // Real-time search functionality
+        if (searchModalInput) {
+            searchModalInput.addEventListener('input', (e) => {
+                this.performSearch(e.target.value);
+            });
+        }
 
         // Header Scroll
         window.addEventListener('scroll', () => {
@@ -852,6 +904,173 @@ pad(num) {
                 this.dom.header.classList.remove('scrolled');
             }
         });
+    }
+
+    openSearchModal() {
+        const searchModal = document.getElementById('search-modal');
+        const searchModalInput = document.getElementById('search-modal-input');
+        
+        if (searchModal) {
+            searchModal.classList.remove('hidden');
+            // Focus on input after animation
+            setTimeout(() => {
+                if (searchModalInput) {
+                    searchModalInput.focus();
+                }
+            }, 100);
+            
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    closeSearchModal() {
+        const searchModal = document.getElementById('search-modal');
+        const searchModalInput = document.getElementById('search-modal-input');
+        const searchPlaceholder = document.getElementById('search-placeholder');
+        const searchResults = document.getElementById('search-results');
+        
+        if (searchModal) {
+            searchModal.classList.add('hidden');
+            
+            // Clear search input and results
+            if (searchModalInput) {
+                searchModalInput.value = '';
+            }
+            
+            // Show placeholder, hide results
+            if (searchPlaceholder) {
+                searchPlaceholder.classList.remove('hidden');
+            }
+            if (searchResults) {
+                searchResults.classList.add('hidden');
+                searchResults.innerHTML = '';
+            }
+            
+            // Restore body scroll
+            document.body.style.overflow = '';
+        }
+    }
+
+    async performSearch(query) {
+        const searchPlaceholder = document.getElementById('search-placeholder');
+        const searchResults = document.getElementById('search-results');
+        
+        if (!query || query.trim() === '') {
+            // Show placeholder when no query
+            if (searchPlaceholder) searchPlaceholder.classList.remove('hidden');
+            if (searchResults) {
+                searchResults.classList.add('hidden');
+                searchResults.innerHTML = '';
+            }
+            return;
+        }
+
+        // Hide placeholder, show results
+        if (searchPlaceholder) searchPlaceholder.classList.add('hidden');
+        if (searchResults) searchResults.classList.remove('hidden');
+
+        try {
+            const recordings = await StorageManager.getAllRecordings();
+            const lowerQuery = query.toLowerCase();
+            
+            // Filter recordings based on title and transcript
+            const filteredResults = recordings.filter(note => {
+                const titleMatch = note.title && note.title.toLowerCase().includes(lowerQuery);
+                const transcriptMatch = note.transcript && 
+                                       note.transcript !== 'processing' && 
+                                       note.transcript.toLowerCase().includes(lowerQuery);
+                return titleMatch || transcriptMatch;
+            });
+
+            // Display results
+            if (filteredResults.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="search-placeholder">
+                        <p class="search-placeholder-text">No results found for "${this.escapeHtml(query)}"</p>
+                    </div>
+                `;
+            } else {
+                searchResults.innerHTML = filteredResults.map(note => {
+                    const highlightedTitle = this.highlightText(note.title, query);
+                    const snippet = this.getSearchSnippet(note.transcript, query);
+                    
+                    return `
+                        <div class="search-result-item" data-note-id="${note.id}">
+                            <div class="search-result-title">${highlightedTitle}</div>
+                            ${snippet ? `<div class="search-result-snippet">${snippet}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                // Add click handlers to results
+                searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const noteId = parseInt(item.dataset.noteId);
+                        this.closeSearchModal();
+                        
+                        // Scroll to the note in the main list
+                        setTimeout(() => {
+                            const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
+                            if (noteElement) {
+                                noteElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                // Highlight the note briefly
+                                noteElement.style.backgroundColor = '#fff3cd';
+                                setTimeout(() => {
+                                    noteElement.style.backgroundColor = '';
+                                }, 2000);
+                            }
+                        }, 300);
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            searchResults.innerHTML = `
+                <div class="search-placeholder">
+                    <p class="search-placeholder-text">An error occurred while searching</p>
+                </div>
+            `;
+        }
+    }
+
+    highlightText(text, query) {
+        if (!text || !query) return this.escapeHtml(text);
+        
+        const escapedText = this.escapeHtml(text);
+        const escapedQuery = this.escapeHtml(query);
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        
+        return escapedText.replace(regex, '<span class="search-highlight">$1</span>');
+    }
+
+    getSearchSnippet(text, query, contextLength = 100) {
+        if (!text || text === 'processing' || !query) return '';
+        
+        const lowerText = text.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        const index = lowerText.indexOf(lowerQuery);
+        
+        if (index === -1) return '';
+        
+        // Get context around the match
+        const start = Math.max(0, index - contextLength / 2);
+        const end = Math.min(text.length, index + query.length + contextLength / 2);
+        
+        let snippet = text.substring(start, end);
+        
+        // Add ellipsis if needed
+        if (start > 0) snippet = '...' + snippet;
+        if (end < text.length) snippet = snippet + '...';
+        
+        return this.highlightText(snippet, query);
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     toggleMenu() {
