@@ -533,6 +533,16 @@ class VoiceNotesApp {
         
         this.bindEvents();
         this.renderNotesList();
+        this.updateKeyboardShortcut();
+    }
+
+    updateKeyboardShortcut() {
+        // Detect if user is on Mac
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const shortcutModifier = document.getElementById('shortcut-modifier');
+        if (shortcutModifier && isMac) {
+            shortcutModifier.textContent = 'Cmd +';
+        }
     }
 
     cacheDOM() {
@@ -635,9 +645,9 @@ class VoiceNotesApp {
                                 <div class="dropdown-menu">
                                     <button class="dropdown-item download-option">
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M8 11L8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                                            <path d="M11 8L8 11L5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M14 13L14 14C14 14.5523 13.5523 15 13 15L3 15C2.44772 15 2 14.5523 2 14L2 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                            <path d="M8 11L8 3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                                            <path d="M11 8L8 11L5 8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M14 13L14 14C14 14.5523 13.5523 15 13 15L3 15C2.44772 15 2 14.5523 2 14L2 13" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
                                         </svg>
                                         Download
                                     </button>
@@ -1169,9 +1179,10 @@ pad(num) {
             this.timer.start();
 
             if (this.isMenuExpanded) this.toggleMenu();
-
-        } catch (err) {
-            console.error('Microphone access denied:', err);
+        } catch (error) {
+            console.error('Microphone access error:', error);
+            this.toastManager.show('Please allow microphone access in your browser');
+            this.updateState('IDLE');
         }
     }
 
@@ -1689,5 +1700,122 @@ class CalendarManager {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         new CalendarManager();
+    }, 100);
+});
+
+// Profile Modal Manager
+class ProfileModalManager {
+    constructor() {
+        this.dom = {
+            profileBtn: document.querySelector('.profile-circle'),
+            profileModal: document.getElementById('profile-modal'),
+            profileBackdrop: document.getElementById('profile-modal-backdrop'),
+            closeBtn: document.getElementById('profile-close-btn'),
+            resumeSection: document.getElementById('resume-section'),
+            portfolioSection: document.getElementById('portfolio-section'),
+            emailSection: document.getElementById('email-section'),
+            whatsappSection: document.getElementById('whatsapp-section')
+        };
+        
+        this.portfolioUrl = 'https://archana-prabhat.vercel.app/';
+        this.email = 'archanaprabhathtk@gmail.com';
+        
+    
+        const phone = "916282581851"; 
+        this.whatsappUrl = `https://wa.me/${phone}`;
+        
+        this.bindEvents();
+    }
+    
+    bindEvents() {
+        // Open modal when clicking profile circle
+        if (this.dom.profileBtn) {
+            this.dom.profileBtn.addEventListener('click', () => this.openModal());
+        }
+        
+        // Close modal
+        if (this.dom.closeBtn) {
+            this.dom.closeBtn.addEventListener('click', () => this.closeModal());
+        }
+        
+        if (this.dom.profileBackdrop) {
+            this.dom.profileBackdrop.addEventListener('click', () => this.closeModal());
+        }
+        
+        // Escape key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.dom.profileModal.classList.contains('hidden')) {
+                this.closeModal();
+            }
+        });
+        
+        // Resume download
+        if (this.dom.resumeSection) {
+            this.dom.resumeSection.addEventListener('click', () => this.downloadResume());
+        }
+        
+        // Portfolio link
+        if (this.dom.portfolioSection) {
+            this.dom.portfolioSection.addEventListener('click', () => this.openPortfolio());
+        }
+        
+        // Email
+        if (this.dom.emailSection) {
+            this.dom.emailSection.addEventListener('click', () => this.openEmail());
+        }
+        
+        // WhatsApp
+        if (this.dom.whatsappSection) {
+            this.dom.whatsappSection.addEventListener('click', () => this.openWhatsApp());
+        }
+    }
+    
+    openModal() {
+        this.dom.profileModal.classList.remove('hidden');
+        this.dom.profileBackdrop.classList.remove('hidden');
+        
+        // Trigger animation
+        setTimeout(() => {
+            this.dom.profileModal.classList.add('show');
+            this.dom.profileBackdrop.classList.add('show');
+        }, 10);
+    }
+    
+    closeModal() {
+        this.dom.profileModal.classList.remove('show');
+        this.dom.profileBackdrop.classList.remove('show');
+        
+        setTimeout(() => {
+            this.dom.profileModal.classList.add('hidden');
+            this.dom.profileBackdrop.classList.add('hidden');
+        }, 250);
+    }
+    
+    downloadResume() {
+        // Create a temporary link to download the resume
+        const link = document.createElement('a');
+        link.href = 'assets/resume.pdf';
+        link.download = 'Archana_TK_Resume.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    openPortfolio() {
+        window.open(this.portfolioUrl, '_blank');
+    }
+    
+    openEmail() {
+        window.location.href = `mailto:${this.email}`;
+    }
+    
+    openWhatsApp() {
+        window.open(this.whatsappUrl, '_blank');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        new ProfileModalManager();
     }, 100);
 });
