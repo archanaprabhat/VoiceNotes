@@ -5,7 +5,7 @@
     --accent-color: #000000;
     --danger-color: #ff3b30;
     --danger-bg: #fff5f5;
-    --pill-bg: #e5e5ea;
+    --pill-bg: #f3f3f3;
     --surface-color: #ffffff;
     --card-hover: #f2f2f2;
 
@@ -189,7 +189,7 @@ body {
     display: flex;
     flex-direction: column;
     width: 100%;
-    padding-bottom: 500px;
+    padding-bottom: 50vh;
     margin: 0 auto;
 }
 
@@ -829,6 +829,7 @@ body {
     
     .notes-list {
         padding: 16px 0px;
+        padding-bottom: 50vh;
     }
     
     .note-footer {
@@ -850,7 +851,7 @@ body {
     
     body {
         padding-top: 160px;
-        padding-bottom: 150px;
+        padding-bottom: 0;
     }
     
     .tags-section {

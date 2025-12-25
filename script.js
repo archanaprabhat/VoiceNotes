@@ -55,12 +55,13 @@ class Visualizer {
         this.animationId = null;
         this.isActive = false;
 
-        // Wave physics parameters
+        // Wave physics parameters - multiple small waves
         this.waves = [
-            { speed: 0.0008, amplitude: 0.15, frequency: 1.5, phase: 0 },
-            { speed: 0.0006, amplitude: 0.12, frequency: 2.2, phase: Math.PI / 3 },
-            { speed: 0.0010, amplitude: 0.10, frequency: 1.8, phase: Math.PI / 2 },
-            { speed: 0.0005, amplitude: 0.08, frequency: 2.5, phase: Math.PI }
+            { speed: 0.0012, amplitude: 0.08, frequency: 4.5, phase: 0 },
+            { speed: 0.0010, amplitude: 0.06, frequency: 5.2, phase: Math.PI / 3 },
+            { speed: 0.0015, amplitude: 0.07, frequency: 3.8, phase: Math.PI / 2 },
+            { speed: 0.0008, amplitude: 0.05, frequency: 6.0, phase: Math.PI },
+            { speed: 0.0013, amplitude: 0.06, frequency: 4.2, phase: Math.PI / 4 }
         ];
 
         // Audio envelope tracking
@@ -77,7 +78,7 @@ class Visualizer {
         this.lastTime = performance.now();
 
         // Dynamic amplitude multiplier
-        this.baseAmplitude = 0.3; // Always alive baseline
+        this.baseAmplitude = 0.4; // Moderate baseline for visible ripples
         this.dynamicAmplitude = 0;
     }
 
@@ -86,7 +87,7 @@ class Visualizer {
 
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 256; 
-        this.analyser.smoothingTimeConstant = 0.3; 
+        this.analyser.smoothingTimeConstant = 0.1; 
 
         this.source = this.audioContext.createMediaStreamSource(stream);
         this.source.connect(this.analyser);
@@ -135,7 +136,7 @@ class Visualizer {
         // Smooth frequency bands for fluid motion
         for (let i = 0; i < 3; i++) {
             const diff = this.freqBands[i] - this.smoothedBands[i];
-            this.smoothedBands[i] += diff * 0.15;
+            this.smoothedBands[i] += diff * 0.3;
         }
 
         return rms;
@@ -154,8 +155,8 @@ class Visualizer {
         const rms = this.analyzeAudio();
 
         // Ultra-smooth envelope with physics-based attack/release
-        const attack = 0.08;
-        const release = 0.03;
+        const attack = 0.25;
+        const release = 0.15;
         const k = rms > this.smoothedLevel ? attack : release;
         this.smoothedLevel += (rms - this.smoothedLevel) * k;
 
@@ -167,8 +168,8 @@ class Visualizer {
             ? (this.smoothedLevel / this.peakLevel) 
             : 0;
         
-        this.targetLevel = this.baseAmplitude + voiceEnergy * 2.5;
-        this.dynamicAmplitude += (this.targetLevel - this.dynamicAmplitude) * 0.08;
+        this.targetLevel = this.baseAmplitude + voiceEnergy * 3.0;
+        this.dynamicAmplitude += (this.targetLevel - this.dynamicAmplitude) * 0.2;
 
         // Update time offset for continuous horizontal flow
         this.timeOffset += deltaTime;
@@ -177,7 +178,7 @@ class Visualizer {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         const centerY = this.canvas.height / 2;
-        const maxHeight = this.canvas.height * 0.4;
+        const maxHeight = this.canvas.height * 0.35;
 
         // Create gradient
         const gradient = this.ctx.createLinearGradient(
