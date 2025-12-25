@@ -1,123 +1,103 @@
-# 🎙️ VoiceNotes
-A modern, feature-rich voice recording web application built with **pure vanilla JavaScript**, featuring real-time waveform visualization, AI transcription, and intelligent organization.
+# VoiceNotes
 
-## 🌟 Live Demo
+A modern voice recording web application built with pure vanilla JavaScript, featuring real-time waveform visualization, AI transcription, and intelligent organization.
 
-**[Try it live on GitHub Pages](https://archanaprabhat.github.io/VoiceNotes/)** 
+## Live Demo
 
-## ✨ Features
+**[Try it live on GitHub Pages](https://archanaprabhat.github.io/VoiceNotes/)**
 
-### Core Features (Challenge Requirements)
+## Features
 
-- ✅ **Audio Recording** - One-click recording with microphone access
-- ✅ **Live Waveform Visualization** - Real-time animated waveform using Canvas API and Web Audio API
-- ✅ **Local Storage** - All recordings saved in IndexedDB for persistence
-- ✅ **Recordings List** - Clean interface displaying all saved recordings
-- ✅ **Playback Controls** - Play/pause with progress tracking and seek functionality
-- ✅ **Pure Vanilla JS** - No frameworks, just HTML, CSS, and JavaScript
+### Core Functionality
+- Audio recording with one-click microphone access
+- Live waveform visualization using Canvas and Web Audio APIs
+- Local storage with IndexedDB for persistence
+- Clean interface for viewing all saved recordings
+- Full playback controls with progress tracking and seek
+- Built entirely with vanilla JavaScript (no frameworks)
 
-### Bonus Features
+### Additional Capabilities
+- Responsive design for desktop and mobile
+- Real-time recording duration timer
+- Delete and download recordings
+- AI transcription via Groq's Whisper API
+- Smart AI-generated titles
+- Quick search with keyboard shortcuts
+- Calendar view for organization
+- Daily AI-generated highlights
+- Modern glassmorphism UI with dark mode
 
-- ✅ **Responsive Design** - Works seamlessly on desktop and mobile
-- ✅ **Recording Duration** - Real-time timer during recording
-- ✅ **Delete Recordings** - Remove unwanted recordings
-- ✅ **Download Audio** - Export recordings as WebM files
+## Technology Stack
 
-### Additional Features (Beyond Requirements)
+- HTML5 for semantic markup
+- CSS3 with modern styling
+- Vanilla JavaScript (no frameworks)
+- Web Audio API for audio analysis and waveforms
+- MediaRecorder API for recording
+- IndexedDB for client-side storage
+- Canvas API for visualization
+- Groq API for AI features (optional)
 
-- 🤖 **AI Transcription** - Automatic speech-to-text using Groq's Whisper API
-- 🎯 **Smart Titles** - AI-generated titles for each recording
-- 🔍 **Search** - Quick search with Ctrl/Cmd+K keyboard shortcut
-- 📅 **Calendar View** - Organize recordings by date
-- ✨ **Modern UI** - Glassmorphism design with smooth animations
-- 🎨 **Dark Mode Ready** - Professional aesthetic
-- 📊 **Daily Highlights** - AI-generated summaries of your notes
-
-## 🛠️ Technology Stack
-
-- **HTML5** - Semantic markup
-- **CSS3** - Modern styling with glassmorphism effects
-- **Vanilla JavaScript** - No frameworks or libraries
-- **Web Audio API** - Real-time audio analysis and waveform generation
-- **MediaRecorder API** - Audio recording
-- **IndexedDB** - Client-side storage
-- **Canvas API** - Waveform visualization
-- **Groq API** - AI transcription and title generation (optional)
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Microphone access
+- Modern web browser with microphone access
 
 ### Installation
 
-1. **Clone the repository**
-
+1. Clone the repository:
    ```bash
    git clone https://github.com/archanaprabhat/voice-notes.git
    cd voice-notes
    ```
 
-2. **Open in browser**
-
-   - Simply open `index.html` in your browser
-   - Or use a local server:
-
+2. Open in browser:
+   - Simply open `index.html` in your browser, or
+   - Use a local server:
    ```bash
-   # Using Python
+   # Python
    python -m http.server 8000
-
-   # Using Node.js
+   
+   # Node.js
    npx serve
    ```
 
-3. **Access the app**
-   - Navigate to `http://localhost:8000`
-   - Allow microphone permissions when prompted
+3. Navigate to `http://localhost:8000` and allow microphone permissions
 
-### Configuration (Optional)
+### Optional Configuration
 
-The app includes AI features powered by Groq API. To use your own API key:
+To enable AI features with your own Groq API key:
 
 1. Open `script.js`
 2. Find line 350: `static GROQ_API_KEY = 'your-api-key-here'`
-3. Replace with your Groq API key from [console.groq.com](https://console.groq.com)
+3. Replace with your API key from [console.groq.com](https://console.groq.com)
 
-> **Note:** The app works perfectly without the API key - you just won't get AI transcription and titles.
+The app works fully without an API key—you simply won't have AI transcription and titles.
 
+## Technical Implementation
 
-## 💡 Key Technical Highlights
-
-### Real-time Waveform
-
-- Uses Web Audio API's `AnalyserNode` for frequency analysis
-- Canvas-based rendering with multiple sine wave layers
-- Smooth animations using `requestAnimationFrame`
-- Dynamic amplitude based on audio input levels
+### Waveform Visualization
+- Web Audio API's AnalyserNode analyzes frequency data
+- Canvas-based rendering with layered sine waves
+- Smooth animations via requestAnimationFrame
+- Dynamic amplitude responds to audio input
 
 ### Audio Recording
-
-- MediaRecorder API for capturing audio
-- Blob storage with WebM format
-- IndexedDB for persistent storage
+- MediaRecorder API captures audio in WebM format
+- Blob storage with IndexedDB persistence
 - Automatic cleanup of media streams
 
-### UI/UX
+### Interface Design
+- Glassmorphism aesthetic with backdrop filters
+- Smooth transitions and animations
+- Mobile-first responsive layout
+- Keyboard shortcuts for efficiency
 
-- Glassmorphism design with backdrop filters
-- Smooth transitions and micro-animations
-- Responsive layout with mobile-first approach
-- Keyboard shortcuts for power users
+## Acknowledgments
 
-
-##  Acknowledgments
-
-- Design inspiration from [voicenotes.com](https://voicenotes.com)
-- Icons from custom SVG designs
+- Design inspired by voicenotes.com
 - AI powered by Groq's Whisper and Llama models
 
 ---
 
-**Built with ❤️ using pure Vanilla JavaScript**
+Built with vanilla JavaScript
