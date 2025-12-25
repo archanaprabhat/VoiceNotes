@@ -579,6 +579,14 @@ class VoiceNotesApp {
                                 </button>
                                 
                                 <div class="dropdown-menu">
+                                    <button class="dropdown-item download-option">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 11L8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                            <path d="M11 8L8 11L5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M14 13L14 14C14 14.5523 13.5523 15 13 15L3 15C2.44772 15 2 14.5523 2 14L2 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                        </svg>
+                                        Download
+                                    </button>
                                     <button class="dropdown-item delete-option">
                                         <svg data-v-50cbeda8="" width="13" height="16" viewBox="0 0 13 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="stroke-red38" d="M2.12891 3.76172L2.61433 12.9847C2.64239 13.518 2.65643 13.7846 2.76917 13.9871C2.86841 14.1653 3.01978 14.3089 3.20299 14.3987C3.41111 14.5006 3.67811 14.5006 4.21212 14.5006H9.08898C9.62299 14.5006 9.88999 14.5006 10.0981 14.3987C10.2813 14.3089 10.4327 14.1653 10.5319 13.9871C10.6447 13.7846 10.6587 13.518 10.6868 12.9847L11.1722 3.76172" stroke="#9B9B9B" stroke-width="1.1" stroke-linejoin="round"></path><path class="stroke-red38" d="M4.05078 4.32617V3.10014C4.05078 2.54009 4.05078 2.26007 4.15977 2.04615C4.25565 1.85799 4.40863 1.70501 4.59679 1.60914C4.8107 1.50014 5.09073 1.50014 5.65078 1.50014H7.65155C8.21161 1.50014 8.49163 1.50014 8.70554 1.60914C8.89371 1.70501 9.04669 1.85799 9.14256 2.04615C9.25155 2.26007 9.25155 2.54009 9.25155 3.10014V4.32617" stroke="#" stroke-width="1.1" stroke-linejoin="round"></path><path class="stroke-red38" d="M1 3.76172H12.3041" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M6.65234 6.02246V11.6745" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M6.65625 6.02051V12.2378" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M8.91749 6.02051L8.69141 12.2378" stroke="#9B9B9B" stroke-linecap="round"></path><path class="stroke-red38" d="M4.39844 6.02051L4.62452 12.2378" stroke="#9B9B9B" stroke-linecap="round"></path></svg>
                                         Delete
@@ -622,6 +630,7 @@ class VoiceNotesApp {
                 // Bind Dropdown/Delete Events
                 const moreBtn = noteEl.querySelector('.more-btn');
                 const menu = noteEl.querySelector('.dropdown-menu');
+                const downloadOption = noteEl.querySelector('.download-option');
                 const deleteOption = noteEl.querySelector('.delete-option');
                 const confirmation = noteEl.querySelector('.delete-confirmation');
                 const confirmBtn = noteEl.querySelector('.btn-delete-confirm');
@@ -639,6 +648,23 @@ class VoiceNotesApp {
                     if (!isCurrentlyOpen) {
                         menu.classList.add('show');
                     }
+                });
+
+                downloadOption.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menu.classList.remove('show');
+                    
+                    // Create download link
+                    const url = URL.createObjectURL(note.blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${note.title}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    this.toastManager.show('Download started');
                 });
 
                 deleteOption.addEventListener('click', (e) => {
