@@ -1655,11 +1655,18 @@ class CalendarManager {
                     if (notesForDay.length > 0) {
                         dayCell.classList.add('has-notes');
                         dayCell.addEventListener('click', () => {
+                            // Remove selected class from all days
+                            document.querySelectorAll('.calendar-day.selected').forEach(el => {
+                                el.classList.remove('selected');
+                            });
+                            // Add selected class to clicked day
+                            dayCell.classList.add('selected');
+                            // Show day details
                             this.showDayDetails(this.currentYear, this.currentMonth, currentDay);
                         });
                     }
                     
-                    // Highlight today
+                    // Mark today (but don't make it black)
                     if (isCurrentMonth && currentDay === todayDate) {
                         dayCell.classList.add('today');
                     }
