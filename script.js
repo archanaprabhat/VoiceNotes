@@ -470,8 +470,8 @@ class VoiceNotesApp {
 
         // Global click to close dropdowns
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('.dropdown-wrapper')) {
-                document.querySelectorAll('.dropdown-menu.show, .delete-confirmation.show').forEach(el => {
+            if (!e.target.closest('.dropdown-wrapper') && !e.target.closest('.floating-help-container')) {
+                document.querySelectorAll('.dropdown-menu.show, .delete-confirmation.show, .help-dropdown.show').forEach(el => {
                     el.classList.remove('show');
                 });
             }
@@ -504,9 +504,14 @@ class VoiceNotesApp {
             
             // Display
             timerDisplay: document.getElementById('timer'),
-            canvas: document.getElementById('waveform')
+            canvas: document.getElementById('waveform'),
+            
+            // Floating Help
+            helpBtn: document.getElementById('help-btn'),
+            helpDropdown: document.getElementById('help-dropdown')
         };
     }
+
 
     async renderNotesList() {
         try {
@@ -801,6 +806,12 @@ pad(num) {
         this.dom.recordingPill.addEventListener('click', () => this.togglePause());
         this.dom.chevronBtn.addEventListener('click', () => this.toggleMenu());
         this.dom.addNoteBtn.addEventListener('click', () => console.log('Add note clicked (Feature pending)'));
+        
+        // Floating Help
+        this.dom.helpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.dom.helpDropdown.classList.toggle('show');
+        });
     }
 
     toggleMenu() {
