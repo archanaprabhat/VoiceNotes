@@ -347,7 +347,7 @@ class StorageManager {
 }
 
 class GroqService {
-    static GROQ_API_KEY = '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'; 
+    static GROQ_API_KEY = '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'; 
     static TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
     static CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -413,6 +413,69 @@ class GroqService {
             console.error('Title generation error:', error);
             return 'Untitled Note';
         }
+    }
+    
+    static async generateDayHighlights(notes) {
+        try {
+            if (!notes || notes.length === 0) return [];
+            
+            // Prepare context from all notes
+            const notesContext = notes.map((note, idx) => 
+                `Note ${idx + 1} (${note.time}): "${note.title}"\nTranscript: ${note.transcript || 'No transcript available'}`
+            ).join('\n\n');
+            
+            const response = await fetch(this.CHAT_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.GROQ_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an expert at analyzing voice notes and extracting key highlights. Generate 2-4 concise, actionable highlights from the provided notes. Each highlight should be a short phrase (3-8 words) capturing important topics, decisions, or action items. Return ONLY a JSON array of strings, nothing else.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Analyze these voice notes and extract key highlights:\n\n${notesContext}\n\nReturn format: ["highlight 1", "highlight 2", "highlight 3"]`
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 150
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Highlights generation failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const content = data.choices[0]?.message?.content?.trim();
+            
+            // Parse JSON response
+            try {
+                const highlights = JSON.parse(content);
+                return Array.isArray(highlights) ? highlights.slice(0, 4) : [];
+            } catch (parseError) {
+                console.error('Failed to parse highlights JSON:', parseError);
+                // Fallback: extract highlights from text
+                return this.extractHighlightsFromText(content);
+            }
+        } catch (error) {
+            console.error('Highlights generation error:', error);
+            return [];
+        }
+    }
+    
+    static extractHighlightsFromText(text) {
+        // Fallback method to extract highlights if JSON parsing fails
+        const lines = text.split('\n').filter(line => line.trim());
+        return lines
+            .map(line => line.replace(/^[-*•]\s*/, '').replace(/^["']|["']$/g, '').trim())
+            .filter(line => line.length > 0 && line.length < 100)
+            .slice(0, 4);
     }
 }
 
@@ -1232,6 +1295,8 @@ class CalendarManager {
         this.currentMonth = this.currentDate.getMonth();
         this.currentYear = this.currentDate.getFullYear();
         this.isHighlightsVisible = false;
+        this.selectedDay = null;
+        this.notesCache = {}; 
         
         this.dom = {
             calendarBtn: document.querySelector('[title="Calendar"]'),
@@ -1244,7 +1309,9 @@ class CalendarManager {
             nextMonthBtn: document.getElementById('next-month-btn'),
             highlightsToggleBtn: document.getElementById('highlights-toggle-btn'),
             highlightsToggleText: document.getElementById('highlights-toggle-text'),
-            highlightsContainer: document.getElementById('highlights-container')
+            highlightsContainer: document.getElementById('highlights-container'),
+            dayDetailsContainer: document.getElementById('day-details-container'),
+            streakText: document.getElementById('streak-text')
         };
         
         this.monthNames = [
@@ -1252,11 +1319,38 @@ class CalendarManager {
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
         
-        // Sample days with notes (for demo purposes - days 22-25 in current month)
-        this.daysWithNotes = [22, 23, 24, 25];
+        this.dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         
         this.bindEvents();
-        this.renderCalendar();
+        this.loadNotesAndRender();
+    }
+    
+    calculateStreak() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        let streak = 0;
+        let currentDate = new Date(today);
+        
+        // Count consecutive days backwards from today
+        while (true) {
+            const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
+            const notesForDay = this.notesCache[dateKey];
+            
+            if (notesForDay && notesForDay.length > 0) {
+                streak++;
+                currentDate.setDate(currentDate.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        
+        // Update streak display
+        if (streak > 0) {
+            this.dom.streakText.textContent = `You are on a ${streak}-day streak and rank 686,933 globally.`;
+        } else {
+            this.dom.streakText.textContent = 'Start recording to build your streak!';
+        }
     }
     
     bindEvents() {
@@ -1302,16 +1396,84 @@ class CalendarManager {
         this.dom.calendarBackdrop.classList.add('hidden');
     }
     
-    toggleHighlights() {
+    async toggleHighlights() {
         this.isHighlightsVisible = !this.isHighlightsVisible;
         
         if (this.isHighlightsVisible) {
+            // Close day details if open
+            this.hideDayDetails();
+            
+            // Show skeleton loading
+            this.dom.highlightsContainer.innerHTML = this.getSkeletonHighlights();
             this.dom.highlightsContainer.classList.remove('hidden');
             this.dom.highlightsToggleText.textContent = 'Hide highlights';
+            
+            // Get all notes from current month
+            const allNotesThisMonth = [];
+            const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const notes = this.getNotesForDay(this.currentYear, this.currentMonth, day);
+                allNotesThisMonth.push(...notes);
+            }
+            
+            if (allNotesThisMonth.length > 0) {
+                // Generate highlights from all notes this month
+                const highlights = await GroqService.generateDayHighlights(allNotesThisMonth);
+                
+                // Display highlights
+                if (highlights.length > 0) {
+                    let html = '<div class="highlights-title">Highlights</div><div class="highlights-list">';
+                    highlights.forEach(highlight => {
+                        html += `
+                            <div class="highlight-item">
+                                <div class="highlight-bullet"></div>
+                                <span class="highlight-text">${highlight}</span>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    this.dom.highlightsContainer.innerHTML = html;
+                } else {
+                    this.dom.highlightsContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: #9B9B9B; font-size: 13px;">No highlights available</div>';
+                }
+            } else {
+                this.dom.highlightsContainer.innerHTML = '<div style="padding: 12px; text-align: center; color: #9B9B9B; font-size: 13px;">No notes this month</div>';
+            }
         } else {
             this.dom.highlightsContainer.classList.add('hidden');
             this.dom.highlightsToggleText.textContent = 'View highlights';
         }
+    }
+    
+    getSkeletonHighlights() {
+        return `
+            <div class="highlights-title">Highlights</div>
+            <div class="highlights-list">
+                <div class="skeleton skeleton-highlight"></div>
+                <div class="skeleton skeleton-highlight"></div>
+                <div class="skeleton skeleton-highlight"></div>
+            </div>
+        `;
+    }
+    
+    getSkeletonDayNotes() {
+        return `
+            <div class="notes-list-container">
+                <div class="skeleton-note">
+                    <div class="skeleton skeleton-note-time"></div>
+                    <div class="skeleton skeleton-note-title"></div>
+                </div>
+                <div class="skeleton-note">
+                    <div class="skeleton skeleton-note-time"></div>
+                    <div class="skeleton skeleton-note-title"></div>
+                </div>
+                <div class="skeleton-note">
+                    <div class="skeleton skeleton-note-time"></div>
+                    <div class="skeleton skeleton-note-title"></div>
+                </div>
+            </div>
+        `;
     }
     
     previousMonth() {
@@ -1320,7 +1482,7 @@ class CalendarManager {
             this.currentMonth = 11;
             this.currentYear--;
         }
-        this.renderCalendar();
+        this.loadNotesAndRender();
         this.updateNavigationButtons();
     }
     
@@ -1330,7 +1492,7 @@ class CalendarManager {
             this.currentMonth = 0;
             this.currentYear++;
         }
-        this.renderCalendar();
+        this.loadNotesAndRender();
         this.updateNavigationButtons();
     }
     
@@ -1347,13 +1509,113 @@ class CalendarManager {
         }
     }
     
+    async loadNotesAndRender() {
+        await this.loadNotesFromDB();
+        this.renderCalendar();
+        this.calculateStreak();
+    }
+    
+    async loadNotesFromDB() {
+        try {
+            const allNotes = await StorageManager.getAllRecordings();
+            this.notesCache = {};
+            
+            // Group notes by date with full data for highlights generation
+            allNotes.forEach(note => {
+                const noteDate = new Date(note.timestamp);
+                const dateKey = `${noteDate.getFullYear()}-${noteDate.getMonth()}-${noteDate.getDate()}`;
+                
+                if (!this.notesCache[dateKey]) {
+                    this.notesCache[dateKey] = [];
+                }
+                
+                this.notesCache[dateKey].push({
+                    id: note.id,
+                    title: note.title,
+                    time: note.time,
+                    timestamp: note.timestamp,
+                    transcript: note.transcript // Include transcript for highlights
+                });
+            });
+        } catch (error) {
+            console.error('Error loading notes:', error);
+        }
+    }
+    
+    getNotesForDay(year, month, day) {
+        const dateKey = `${year}-${month}-${day}`;
+        return this.notesCache[dateKey] || [];
+    }
+    
+    async showDayDetails(year, month, day) {
+        const notes = this.getNotesForDay(year, month, day);
+        if (notes.length === 0) return;
+        
+        this.selectedDay = { year, month, day };
+        
+        // Close highlights if open
+        if (this.isHighlightsVisible) {
+            this.isHighlightsVisible = false;
+            this.dom.highlightsContainer.classList.add('hidden');
+            this.dom.highlightsToggleText.textContent = 'View highlights';
+        }
+        
+        const date = new Date(year, month, day);
+        const dayName = this.dayNames[date.getDay()];
+        const monthName = this.monthNames[month];
+        const formattedDate = `${dayName}, ${monthName.slice(0, 3)} ${day}, ${year}`;
+        
+        // Show skeleton loading
+        this.dom.dayDetailsContainer.innerHTML = `
+            <a href="#" class="day-details-date">${formattedDate}</a>
+            ${this.getSkeletonDayNotes()}
+        `;
+        this.dom.dayDetailsContainer.classList.remove('hidden');
+        
+        // Small delay to show skeleton
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Build final HTML (no highlights section here - only in top highlights toggle)
+        let html = `
+            <a href="#" class="day-details-date">${formattedDate}</a>
+            <div class="notes-list-container">
+        `;
+        
+        notes.forEach(note => {
+            html += `
+                <div class="note-item-calendar" data-note-id="${note.id}">
+                    <span class="note-time">${note.time}</span>
+                    <span class="note-title-calendar">${note.title}</span>
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+        
+        if (notes.length > 3) {
+            html += `
+                <div class="see-all-notes-btn">
+                    <button>See all notes</button>
+                </div>
+            `;
+        }
+        
+        this.dom.dayDetailsContainer.innerHTML = html;
+    }
+    
+    hideDayDetails() {
+        this.selectedDay = null;
+        this.dom.dayDetailsContainer.classList.add('hidden');
+    }
+    
     renderCalendar() {
         // Update month and year display
         this.dom.calendarMonth.textContent = this.monthNames[this.currentMonth];
         this.dom.calendarYear.textContent = this.currentYear;
         
-        // Clear existing calendar
+        // Clear existing calendar and hide day details
         this.dom.calendarGrid.innerHTML = '';
+        this.hideDayDetails();
         
         // Get first day of month (0 = Sunday, 1 = Monday, etc.)
         const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
@@ -1385,19 +1647,20 @@ class CalendarManager {
                 const cellIndex = week * 7 + day;
                 
                 if (cellIndex >= firstDayAdjusted && dayCounter <= daysInMonth) {
-                    dayCell.textContent = dayCounter;
+                    const currentDay = dayCounter;
+                    dayCell.textContent = currentDay;
                     
-                    // Check if this day has notes
-                    if (this.daysWithNotes.includes(dayCounter)) {
+                    // Check if this day has notes (dynamically from IndexedDB)
+                    const notesForDay = this.getNotesForDay(this.currentYear, this.currentMonth, currentDay);
+                    if (notesForDay.length > 0) {
                         dayCell.classList.add('has-notes');
                         dayCell.addEventListener('click', () => {
-                            console.log(`Clicked on day ${dayCounter}`);
-                            // Navigate to day view or show notes for this day
+                            this.showDayDetails(this.currentYear, this.currentMonth, currentDay);
                         });
                     }
                     
                     // Highlight today
-                    if (isCurrentMonth && dayCounter === todayDate) {
+                    if (isCurrentMonth && currentDay === todayDate) {
                         dayCell.classList.add('today');
                     }
                     
@@ -1415,7 +1678,6 @@ class CalendarManager {
         this.updateNavigationButtons();
     }
 }
-
 
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {

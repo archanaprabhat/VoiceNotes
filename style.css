@@ -162,7 +162,7 @@ body {
     font-weight: 400;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .keyboard-shortcut {
         display: none;
     }
@@ -174,6 +174,10 @@ body {
     gap: 8px;
     min-width: 120px;
     justify-content: flex-end;
+}
+
+.header-actions > *{
+    flex-shrink: 0;
 }
 
 .icon-btn.action-circle {
@@ -778,10 +782,10 @@ body {
     background-color: #e5e5e5;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .search-header {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         padding: 12px 0;
         gap: 12px;
         align-items: center;
@@ -792,15 +796,33 @@ body {
         font-size: 28px;
         font-weight: 700;
         margin: 0;
-        padding: 0 16px;
-        width: 100%;
-        order: 2;
+        /* padding: 0 16px; */
+        /* width: 100%; */
+        /* order: 2; */
+    }
+
+    .app-name-wrapper{
+        margin-right: auto;
+        margin-top: 50px;
+        font-size: 28px;
+        font-weight: 700;
+        
+        transition: all 0.2s ease-in-out;
+    }
+
+    .search-header.scrolled  .app-name-wrapper{
+        margin-top: 3px;
+        font-size: 20px;
+    }
+
+    .search-header.scrolled  .search-bar{
+        display: none;
     }
     
     .header-actions {
-        display: flex;
-        margin-left: auto;
+        display: flex;        
         order: 1;
+        width: 100%;
     }
     
     .search-bar {
@@ -963,7 +985,7 @@ body {
     color: #9B9B9B;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .floating-help-container {
         display: none !important;
     }
@@ -1232,7 +1254,11 @@ body {
 }
 
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+    .search-header {
+        padding: 8px 12px;
+    }
+    
     .search-modal-content {
         max-width: 100%;
     }
@@ -1305,7 +1331,7 @@ body {
 }
 
 .calendar-popover {
-    position: absolute;
+    position: fixed;
     top: 68px;
     right: 50px;
     width: 315px;
@@ -1584,7 +1610,7 @@ body {
 
 
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .calendar-popover {
         position: fixed;
         top: 50%;
@@ -1631,8 +1657,174 @@ body {
     visibility: visible;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .calendar-backdrop {
         display: block;
     }
+}
+
+.day-details-container {
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f0f0;
+    animation: slideDown 0.2s ease-out;
+}
+
+.day-details-date {
+    font-size: 14px;
+    font-weight: 500;
+    color: #000;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-details-date:hover {
+    text-decoration: underline;
+}
+
+.notes-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.note-item-calendar {
+    display: flex;
+    align-items: center;
+    padding: 4px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+}
+
+.note-item-calendar:hover {
+    background-color: #f9f9f9;
+}
+
+.note-time {
+    font-size: 12px;
+    color: #9B9B9B;
+    width: 48px;
+    flex-shrink: 0;
+}
+
+.note-title-calendar {
+    font-size: 14px;
+    color: #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.see-all-notes-btn {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.see-all-notes-btn button {
+    font-size: 12px;
+    background-color: #f3f3f3;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    font-family: var(--font-family);
+    font-weight: 500;
+}
+
+.see-all-notes-btn button:hover {
+    background-color: #e5e5e5;
+}
+
+/* Day Highlights Section */
+.day-highlights-section {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #f0f0f0;
+}
+
+.day-highlights-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+    margin-bottom: 8px;
+}
+
+.day-highlights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.day-highlight-item {
+    display: flex;
+    align-items: flex-start;
+}
+
+.day-highlight-bullet {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: #006F30;
+    margin-top: 6px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.day-highlight-text {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.5;
+}
+
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -468px 0;
+    }
+    100% {
+        background-position: 468px 0;
+    }
+}
+
+.skeleton {
+    animation: shimmer 1.2s ease-in-out infinite;
+    background: linear-gradient(to right, #f0f0f0 8%, #e0e0e0 18%, #f0f0f0 33%);
+    background-size: 800px 104px;
+    border-radius: 4px;
+}
+
+.skeleton-highlight {
+    height: 16px;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+.skeleton-highlight:last-child {
+    width: 80%;
+}
+
+.skeleton-note {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.skeleton-note-time {
+    width: 48px;
+    height: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.skeleton-note-title {
+    flex: 1;
+    height: 14px;
 }
