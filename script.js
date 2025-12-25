@@ -483,6 +483,7 @@ class VoiceNotesApp {
 
     cacheDOM() {
         this.dom = {
+            header: document.querySelector('.search-header'),
             recordBtn: document.getElementById('record-btn'),
             idleView: document.getElementById('idle-view'),
             recordingView: document.getElementById('recording-view'),
@@ -811,6 +812,28 @@ pad(num) {
         this.dom.helpBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.dom.helpDropdown.classList.toggle('show');
+        });
+
+        // Tags Selection
+        const tagsWrapper = document.querySelector('.tags-wrapper');
+        if (tagsWrapper) {
+            tagsWrapper.addEventListener('click', (e) => {
+                const tag = e.target.closest('.tag-item');
+                if (tag) {
+                    tagsWrapper.querySelectorAll('.tag-item').forEach(t => t.classList.remove('active'));
+                    tag.classList.add('active');
+                }
+            });
+        }
+
+
+        // Header Scroll
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 0) {
+                this.dom.header.classList.add('scrolled');
+            } else {
+                this.dom.header.classList.remove('scrolled');
+            }
         });
     }
 
