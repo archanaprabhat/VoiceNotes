@@ -347,7 +347,7 @@ class StorageManager {
 }
 
 class GroqService {
-    static GROQ_API_KEY = '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'; 
+    static GROQ_API_KEY = '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'; 
     static TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
     static CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
