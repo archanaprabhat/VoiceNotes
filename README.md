@@ -1,103 +1,80 @@
 # VoiceNotes
 
-A modern voice recording web application built with pure vanilla JavaScript, featuring real-time waveform visualization, AI transcription, and intelligent organization.
+Web application for capturing and organizing audio recordings built with vanilla JavaScript and object-oriented design principles, combining real-time audio visualization, AI transcription, search functionality, and calendar views.
 
-## Live Demo
-
-**[Try it live on GitHub Pages](https://archanaprabhat.github.io/VoiceNotes/)**
+**Live Demo: https://archanaprabhat.github.io/VoiceNotes/**
 
 ## Features
 
-### Core Functionality
-- Audio recording with one-click microphone access
-- Live waveform visualization using Canvas and Web Audio APIs
-- Local storage with IndexedDB for persistence
-- Clean interface for viewing all saved recordings
-- Full playback controls with progress tracking and seek
-- Built entirely with vanilla JavaScript (no frameworks)
+### Recording
+- Audio recording using MediaRecorder API with WebM format and Opus codec
+- Real-time waveform visualization with multi-layered sine wave animation using Canvas and Web Audio API
+- Persistent local storage using IndexedDB for audio blobs and metadata
+- Play and pause controls with countdown timer and click-to-seek functionality
+- Progress bar with visual feedback during playback
 
-### Additional Capabilities
-- Responsive design for desktop and mobile
-- Real-time recording duration timer
-- Delete and download recordings
-- AI transcription via Groq's Whisper API
-- Smart AI-generated titles
-- Quick search with keyboard shortcuts
-- Calendar view for organization
-- Daily AI-generated highlights
-- Modern glassmorphism UI with dark mode
+### AI Capabilities
+- Automatic speech-to-text transcription using Groq's Whisper-large-v3 model
+- Title generation from transcripts using Llama 3.3 70B Versatile
+- Monthly highlights summaries
+- Background processing keeps UI responsive
 
-## Technology Stack
+### Search
+- Search across titles and transcripts
+- Keyboard shortcut with Ctrl/Cmd+K (changes based on OS)
+- Filtering using regex
+- Context snippets around search matches
+- Highlighting of selected text with smooth scrolling
 
-- HTML5 for semantic markup
-- CSS3 with modern styling
-- Vanilla JavaScript (no frameworks)
-- Web Audio API for audio analysis and waveforms
-- MediaRecorder API for recording
-- IndexedDB for client-side storage
-- Canvas API for visualization
-- Groq API for AI features (optional)
+### Calendar
+- Day highlighting for dates containing recordings
+- Day detail view displaying chronological list of notes for selected dates
+- Month navigation with future date blocking
+- Skeleton loading states
+- Dynamic messages based on recording streaks
+- Highlights feature collecting titles and transcripts from current month, sending to Groq's Llama model requesting 2 to 4 actionable highlights of 3 to 8 words each, displaying results with shimmer loading animation
 
-## Getting Started
+### Additional Features
+- Toast notifications for operations
+- Download recordings as WebM files
+- Delete recordings with confirmation
+- Responsive design with mobile-first approach
 
-### Prerequisites
-- Modern web browser with microphone access
+## Technical Architecture
 
-### Installation
+### Design Patterns
+- Modular class-based architecture with separation of concerns
+- Centralized state management
+- Asynchronous pattern using async/await and Promises
+- Event-driven interaction
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/archanaprabhat/voice-notes.git
-   cd voice-notes
-   ```
+### Implementation Details
+- Real-time audio visualization using Web Audio API and Canvas
+- IndexedDB retrieves records sorted by timestamp in descending order
+- UI states: IDLE, RECORDING, PAUSED
+- Consecutive recording streak calculation starting from current date with dynamic messages
 
-2. Open in browser:
-   - Simply open `index.html` in your browser, or
-   - Use a local server:
-   ```bash
-   # Python
-   python -m http.server 8000
-   
-   # Node.js
-   npx serve
-   ```
+## How It Works
 
-3. Navigate to `http://localhost:8000` and allow microphone permissions
+### Recording Lifecycle
+When recording starts, the app requests microphone access and initializes MediaRecorder. When recording stops, audio chunks combine into a single Blob and save immediately to IndexedDB with processing placeholders for title and transcript, making the note appear in the list instantly. In the background, the audio converts to FormData and sends to Groq's Whisper API for transcription. The transcript then goes to Llama for title generation. IndexedDB updates with the actual title and transcript, and the UI refreshes to show the final content.
 
-### Optional Configuration
+## Tech Stack
 
-To enable AI features with your own Groq API key:
+**Frontend**
+- HTML5, CSS3 (glassmorphism, animations, Grid, Flexbox)
+- Vanilla JavaScript (ES6+ classes, async/await, Promises)
 
-1. Open `script.js`
-2. Find line 350: `static GROQ_API_KEY = 'your-api-key-here'`
-3. Replace with your API key from [console.groq.com](https://console.groq.com)
+**Web APIs**
+- MediaRecorder, Web Audio (AudioContext, AnalyserNode)
+- Canvas, IndexedDB, Fetch
 
-The app works fully without an API key—you simply won't have AI transcription and titles.
+**External Services**
+- Groq API (Whisper-large-v3, Llama 3.3 70B Versatile)
 
-## Technical Implementation
+**Design Assets**
+- SVGs from Figma and Lucide React
 
-### Waveform Visualization
-- Web Audio API's AnalyserNode analyzes frequency data
-- Canvas-based rendering with layered sine waves
-- Smooth animations via requestAnimationFrame
-- Dynamic amplitude responds to audio input
+## Quick Start
 
-### Audio Recording
-- MediaRecorder API captures audio in WebM format
-- Blob storage with IndexedDB persistence
-- Automatic cleanup of media streams
-
-### Interface Design
-- Glassmorphism aesthetic with backdrop filters
-- Smooth transitions and animations
-- Mobile-first responsive layout
-- Keyboard shortcuts for efficiency
-
-## Acknowledgments
-
-- Design inspired by voicenotes.com
-- AI powered by Groq's Whisper and Llama models
-
----
-
-Built with vanilla JavaScript
+Clone the repository and navigate to the project directory. Open index.html in your browser or run a local server. Allow microphone permissions when prompted.
