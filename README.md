@@ -2,6 +2,8 @@
 
 Web application for capturing and organizing audio recordings built with vanilla JavaScript and object-oriented design principles, combining real-time audio visualization, AI transcription, search functionality, and calendar views.
 
+https://github.com/user-attachments/assets/8fdfc895-9b55-4348-a72f-af17474ad76c
+
 **Live Demo: https://archanaprabhat.github.io/VoiceNotes/**
 
 ## Features
