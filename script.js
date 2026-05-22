@@ -68,7 +68,7 @@ class Visualizer {
         this.smoothedLevel = 0;
         this.targetLevel = 0;
         this.peakLevel = 0;
-        
+
         // Frequency band tracking for natural response
         this.freqBands = new Float32Array(3); // low, mid, high
         this.smoothedBands = new Float32Array(3);
@@ -86,8 +86,8 @@ class Visualizer {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
         this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 256; 
-        this.analyser.smoothingTimeConstant = 0.1; 
+        this.analyser.fftSize = 256;
+        this.analyser.smoothingTimeConstant = 0.1;
 
         this.source = this.audioContext.createMediaStreamSource(stream);
         this.source.connect(this.analyser);
@@ -101,7 +101,7 @@ class Visualizer {
         const bufferLength = this.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         const timeData = new Uint8Array(this.analyser.fftSize);
-        
+
         this.analyser.getByteFrequencyData(dataArray);
         this.analyser.getByteTimeDomainData(timeData);
 
@@ -116,9 +116,9 @@ class Visualizer {
         // Extract frequency bands for natural wave modulation
         const lowEnd = Math.floor(bufferLength * 0.1);
         const midEnd = Math.floor(bufferLength * 0.4);
-        
+
         let lowSum = 0, midSum = 0, highSum = 0;
-        
+
         for (let i = 0; i < lowEnd; i++) {
             lowSum += dataArray[i];
         }
@@ -164,10 +164,10 @@ class Visualizer {
         this.peakLevel = Math.max(this.peakLevel * 0.99, this.smoothedLevel);
 
         // Dynamic amplitude: baseline + voice surge
-        const voiceEnergy = this.peakLevel > 0.01 
-            ? (this.smoothedLevel / this.peakLevel) 
+        const voiceEnergy = this.peakLevel > 0.01
+            ? (this.smoothedLevel / this.peakLevel)
             : 0;
-        
+
         this.targetLevel = this.baseAmplitude + voiceEnergy * 3.0;
         this.dynamicAmplitude += (this.targetLevel - this.dynamicAmplitude) * 0.2;
 
@@ -201,15 +201,15 @@ class Visualizer {
             this.waves.forEach((wave, idx) => {
                 const bandMod = this.smoothedBands[idx % 3];
                 const phaseShift = wave.phase + this.timeOffset * wave.speed;
-                
+
                 // Multiple frequencies create organic water-like motion
                 const primaryWave = Math.sin(t * Math.PI * wave.frequency + phaseShift);
                 const secondaryWave = Math.sin(t * Math.PI * wave.frequency * 1.7 + phaseShift * 1.3);
-                
+
                 // Combine waves with band modulation
                 const combined = (primaryWave * 0.7 + secondaryWave * 0.3);
                 const modulated = combined * (1 + bandMod * 0.5);
-                
+
                 yOffset += modulated * wave.amplitude;
             });
 
@@ -223,7 +223,7 @@ class Visualizer {
                 // Smooth curves using quadratic bezier
                 const prevX = (i - 1) * segmentWidth;
                 const prevT = (i - 1) / resolution;
-                
+
                 let prevYOffset = 0;
                 this.waves.forEach((wave, idx) => {
                     const bandMod = this.smoothedBands[idx % 3];
@@ -234,12 +234,12 @@ class Visualizer {
                     const modulated = combined * (1 + bandMod * 0.5);
                     prevYOffset += modulated * wave.amplitude;
                 });
-                
+
                 const prevY = centerY + prevYOffset * amplitude;
-                
+
                 const cpX = (prevX + x) / 2;
                 const cpY = (prevY + y) / 2;
-                
+
                 this.ctx.quadraticCurveTo(prevX, prevY, cpX, cpY);
             }
         }
@@ -302,7 +302,7 @@ class StorageManager {
             const tx = db.transaction([this.STORE_NAME], 'readwrite');
             const store = tx.objectStore(this.STORE_NAME);
             const getRequest = store.get(id);
-            
+
             getRequest.onsuccess = () => {
                 const record = getRequest.result;
                 if (record) {
@@ -347,7 +347,8 @@ class StorageManager {
 }
 
 class GroqService {
-    static GROQ_API_KEY = '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'; 
+    // Replaced direct Groq calls with Supabase Edge Function to protect the API key.
+    static PROXY_URL = 'https://zihbiljilxnpsptlzmtd.supabase.co/functions/v1/groq-proxy';
     static TRANSCRIPTION_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
     static CHAT_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -358,10 +359,10 @@ class GroqService {
             formData.append('model', 'whisper-large-v3');
             formData.append('response_format', 'json');
 
-            const response = await fetch(this.TRANSCRIPTION_URL, {
+            const response = await fetch(this.PROXY_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.GROQ_API_KEY}`
+                    'x-target-url': this.TRANSCRIPTION_URL
                 },
                 body: formData
             });
@@ -380,10 +381,10 @@ class GroqService {
 
     static async generateTitle(transcript) {
         try {
-            const response = await fetch(this.CHAT_URL, {
+            const response = await fetch(this.PROXY_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.GROQ_API_KEY}`,
+                    'x-target-url': this.CHAT_URL,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -414,20 +415,20 @@ class GroqService {
             return 'Untitled Note';
         }
     }
-    
+
     static async generateDayHighlights(notes) {
         try {
             if (!notes || notes.length === 0) return [];
-            
+
             // Prepare context from all notes
-            const notesContext = notes.map((note, idx) => 
+            const notesContext = notes.map((note, idx) =>
                 `Note ${idx + 1} (${note.time}): "${note.title}"\nTranscript: ${note.transcript || 'No transcript available'}`
             ).join('\n\n');
-            
-            const response = await fetch(this.CHAT_URL, {
+
+            const response = await fetch(this.PROXY_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.GROQ_API_KEY}`,
+                    'x-target-url': this.CHAT_URL,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -453,7 +454,7 @@ class GroqService {
 
             const data = await response.json();
             const content = data.choices[0]?.message?.content?.trim();
-            
+
             // Parse JSON response
             try {
                 const highlights = JSON.parse(content);
@@ -468,7 +469,7 @@ class GroqService {
             return [];
         }
     }
-    
+
     static extractHighlightsFromText(text) {
         // Fallback method to extract highlights if JSON parsing fails
         const lines = text.split('\n').filter(line => line.trim());
@@ -506,12 +507,12 @@ class VoiceNotesApp {
         this.state = 'IDLE';
         this.isMenuExpanded = false;
         this.expandedNoteId = null; // Track which note's transcript is expanded
-        
+
         // Core Logic -- Recording
         this.mediaRecorder = null;
         this.audioChunks = [];
         this.saveOnStop = false;
-        
+
         // Core Logic -- Playback
         this.currentAudio = null;
         this.currentlyPlayingId = null;
@@ -530,7 +531,7 @@ class VoiceNotesApp {
                 });
             }
         });
-        
+
         this.bindEvents();
         this.renderNotesList();
         this.updateKeyboardShortcut();
@@ -552,7 +553,7 @@ class VoiceNotesApp {
             idleView: document.getElementById('idle-view'),
             recordingView: document.getElementById('recording-view'),
             notesList: document.getElementById('notes-list'),
-            
+
             // Menu
             chevronBtn: document.getElementById('chevron-btn'),
             chevronUp: document.getElementById('chevron-up'),
@@ -560,17 +561,17 @@ class VoiceNotesApp {
             expandedMenu: document.getElementById('expanded-menu'),
             cancelBtn: document.getElementById('cancel-btn'),
             addNoteBtn: document.getElementById('add-note-btn'),
-            
+
             // Interaction
             recordingPill: document.getElementById('recording-pill'),
             pauseIcon: document.getElementById('pause-icon'),
             playIcon: document.getElementById('play-icon'),
             doneBtn: document.getElementById('done-btn'),
-            
+
             // Display
             timerDisplay: document.getElementById('timer'),
             canvas: document.getElementById('waveform'),
-            
+
             // Floating Help
             helpBtn: document.getElementById('help-btn'),
             helpDropdown: document.getElementById('help-dropdown')
@@ -583,11 +584,20 @@ class VoiceNotesApp {
             const recordings = await StorageManager.getAllRecordings();
             this.dom.notesList.innerHTML = '';
 
+            if (recordings.length === 0) {
+                this.dom.notesList.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                        <p style="font-size: 15px; color: #666; max-width: 300px; line-height: 1.5;">Hit that record button and record whatever you want.</p>
+                    </div>
+                `;
+                return;
+            }
+
             for (const note of recordings) {
                 const noteEl = document.createElement('div');
                 noteEl.className = 'note-item';
                 noteEl.dataset.noteId = note.id;
-                
+
                 const dateObj = new Date(note.timestamp);
                 const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -668,7 +678,7 @@ class VoiceNotesApp {
                         </div>
                     </div>
                 `;
-                
+
                 // Bind Events
                 const playBtn = noteEl.querySelector('.mini-play-btn');
                 const seekContainer = noteEl.querySelector('.mini-progress-container');
@@ -717,7 +727,7 @@ class VoiceNotesApp {
                 downloadOption.addEventListener('click', (e) => {
                     e.stopPropagation();
                     menu.classList.remove('show');
-                    
+
                     // Create download link
                     const url = URL.createObjectURL(note.blob);
                     const a = document.createElement('a');
@@ -727,7 +737,7 @@ class VoiceNotesApp {
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    
+
                     this.toastManager.show('Download started');
                 });
 
@@ -770,7 +780,7 @@ class VoiceNotesApp {
             this.currentAudio.pause();
             const prevPill = document.querySelector(`.player-pill[data-id="${this.currentlyPlayingId}"]`);
             if (prevPill) this.resetPillUI(prevPill);
-            
+
             this.currentAudio = null;
             this.currentlyPlayingId = null;
             if (this.playbackInterval) cancelAnimationFrame(this.playbackInterval);
@@ -780,12 +790,12 @@ class VoiceNotesApp {
             const audioUrl = URL.createObjectURL(note.blob);
             this.currentAudio = new Audio(audioUrl);
             this.currentlyPlayingId = note.id;
-            
+
             this.currentAudio.addEventListener('ended', () => {
-                 this.resetPillUI(pillEl);
-                 this.currentAudio = null;
-                 this.currentlyPlayingId = null;
-                 if (this.playbackInterval) cancelAnimationFrame(this.playbackInterval);
+                this.resetPillUI(pillEl);
+                this.currentAudio = null;
+                this.currentlyPlayingId = null;
+                if (this.playbackInterval) cancelAnimationFrame(this.playbackInterval);
             });
         }
 
@@ -801,40 +811,40 @@ class VoiceNotesApp {
     }
 
     startProgressLoop(pillEl) {
-    const update = () => {
-        if (this.currentAudio && !this.currentAudio.paused) {
-            const percent = (this.currentAudio.currentTime / this.currentAudio.duration) * 100 || 0;
-            this.updatePillProgress(pillEl, percent);
-            
-            const remaining = this.currentAudio.duration - this.currentAudio.currentTime;
-            this.updateDurationDisplay(pillEl, remaining);
-            
-            this.playbackInterval = requestAnimationFrame(update);
-        }
-    };
-    update();
-}
-    
+        const update = () => {
+            if (this.currentAudio && !this.currentAudio.paused) {
+                const percent = (this.currentAudio.currentTime / this.currentAudio.duration) * 100 || 0;
+                this.updatePillProgress(pillEl, percent);
+
+                const remaining = this.currentAudio.duration - this.currentAudio.currentTime;
+                this.updateDurationDisplay(pillEl, remaining);
+
+                this.playbackInterval = requestAnimationFrame(update);
+            }
+        };
+        update();
+    }
+
     handleSeek(e, note, pillEl, container) {
         const wasPlaying = this.currentAudio && !this.currentAudio.paused;
-        
+
         if (!this.currentAudio || this.currentlyPlayingId !== note.id) {
-             this.togglePlayback(note, pillEl);
+            this.togglePlayback(note, pillEl);
         }
-        
+
         const rect = container.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const width = rect.width;
         const percent = Math.min(Math.max(offsetX / width, 0), 1);
-        
+
         if (this.currentAudio) {
             if (Number.isFinite(this.currentAudio.duration)) {
-                 this.currentAudio.currentTime = percent * this.currentAudio.duration;
-                 this.updatePillProgress(pillEl, percent * 100);
+                this.currentAudio.currentTime = percent * this.currentAudio.duration;
+                this.updatePillProgress(pillEl, percent * 100);
             } else {
                 this.currentAudio.onloadedmetadata = () => {
-                     this.currentAudio.currentTime = percent * this.currentAudio.duration;
-                     this.updatePillProgress(pillEl, percent * 100);
+                    this.currentAudio.currentTime = percent * this.currentAudio.duration;
+                    this.updatePillProgress(pillEl, percent * 100);
                 };
             }
         }
@@ -847,8 +857,8 @@ class VoiceNotesApp {
             playIcon.classList.add('hidden');
             pauseIcon.classList.remove('hidden');
         } else {
-             playIcon.classList.remove('hidden');
-             pauseIcon.classList.add('hidden');
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
         }
     }
 
@@ -862,33 +872,33 @@ class VoiceNotesApp {
     }
 
     updateDurationDisplay(pillEl, remainingSeconds) {
-    const durationText = pillEl.querySelector('.duration-text');
-    if (durationText && Number.isFinite(remainingSeconds)) {
-        const minutes = Math.floor(remainingSeconds / 60);
-        const seconds = Math.floor(remainingSeconds % 60);
-        durationText.textContent = `${this.pad(minutes)}:${this.pad(seconds)}`;
+        const durationText = pillEl.querySelector('.duration-text');
+        if (durationText && Number.isFinite(remainingSeconds)) {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = Math.floor(remainingSeconds % 60);
+            durationText.textContent = `${this.pad(minutes)}:${this.pad(seconds)}`;
+        }
     }
-}
 
-pad(num) {
-    return num.toString().padStart(2, '0');
-}
+    pad(num) {
+        return num.toString().padStart(2, '0');
+    }
 
     resetPillUI(pillEl) {
-    this.setPlayStateUI(pillEl, false);
-    this.updatePillProgress(pillEl, 0);
-    
-    const noteId = parseInt(pillEl.dataset.id);
-    StorageManager.getAllRecordings().then(recordings => {
-        const note = recordings.find(r => r.id === noteId);
-        if (note) {
-            const durationText = pillEl.querySelector('.duration-text');
-            if (durationText) {
-                durationText.textContent = note.duration;
+        this.setPlayStateUI(pillEl, false);
+        this.updatePillProgress(pillEl, 0);
+
+        const noteId = parseInt(pillEl.dataset.id);
+        StorageManager.getAllRecordings().then(recordings => {
+            const note = recordings.find(r => r.id === noteId);
+            if (note) {
+                const durationText = pillEl.querySelector('.duration-text');
+                if (durationText) {
+                    durationText.textContent = note.duration;
+                }
             }
-        }
-    });
-}
+        });
+    }
 
     bindEvents() {
         this.dom.recordBtn.addEventListener('click', () => this.startRecording());
@@ -897,7 +907,7 @@ pad(num) {
         this.dom.recordingPill.addEventListener('click', () => this.togglePause());
         this.dom.chevronBtn.addEventListener('click', () => this.toggleMenu());
         this.dom.addNoteBtn.addEventListener('click', () => console.log('Add note clicked (Feature pending)'));
-        
+
         // Floating Help
         this.dom.helpBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -931,7 +941,7 @@ pad(num) {
                 e.preventDefault();
                 this.openSearchModal();
             });
-            
+
             // Make search input readonly to prevent keyboard on mobile
             searchInput.setAttribute('readonly', 'true');
         }
@@ -942,7 +952,7 @@ pad(num) {
                 e.preventDefault();
                 this.openSearchModal();
             }
-            
+
             // Escape key to close search modal
             if (e.key === 'Escape' && searchModal && !searchModal.classList.contains('hidden')) {
                 this.closeSearchModal();
@@ -982,7 +992,7 @@ pad(num) {
     openSearchModal() {
         const searchModal = document.getElementById('search-modal');
         const searchModalInput = document.getElementById('search-modal-input');
-        
+
         if (searchModal) {
             searchModal.classList.remove('hidden');
             // Focus on input after animation
@@ -991,7 +1001,7 @@ pad(num) {
                     searchModalInput.focus();
                 }
             }, 100);
-            
+
             // Prevent body scroll when modal is open
             document.body.style.overflow = 'hidden';
         }
@@ -1002,15 +1012,15 @@ pad(num) {
         const searchModalInput = document.getElementById('search-modal-input');
         const searchPlaceholder = document.getElementById('search-placeholder');
         const searchResults = document.getElementById('search-results');
-        
+
         if (searchModal) {
             searchModal.classList.add('hidden');
-            
+
             // Clear search input and results
             if (searchModalInput) {
                 searchModalInput.value = '';
             }
-            
+
             // Show placeholder, hide results
             if (searchPlaceholder) {
                 searchPlaceholder.classList.remove('hidden');
@@ -1019,7 +1029,7 @@ pad(num) {
                 searchResults.classList.add('hidden');
                 searchResults.innerHTML = '';
             }
-            
+
             // Restore body scroll
             document.body.style.overflow = '';
         }
@@ -1028,7 +1038,7 @@ pad(num) {
     async performSearch(query) {
         const searchPlaceholder = document.getElementById('search-placeholder');
         const searchResults = document.getElementById('search-results');
-        
+
         if (!query || query.trim() === '') {
             // Show placeholder when no query
             if (searchPlaceholder) searchPlaceholder.classList.remove('hidden');
@@ -1046,13 +1056,13 @@ pad(num) {
         try {
             const recordings = await StorageManager.getAllRecordings();
             const lowerQuery = query.toLowerCase();
-            
+
             // Filter recordings based on title and transcript
             const filteredResults = recordings.filter(note => {
                 const titleMatch = note.title && note.title.toLowerCase().includes(lowerQuery);
-                const transcriptMatch = note.transcript && 
-                                       note.transcript !== 'processing' && 
-                                       note.transcript.toLowerCase().includes(lowerQuery);
+                const transcriptMatch = note.transcript &&
+                    note.transcript !== 'processing' &&
+                    note.transcript.toLowerCase().includes(lowerQuery);
                 return titleMatch || transcriptMatch;
             });
 
@@ -1067,7 +1077,7 @@ pad(num) {
                 searchResults.innerHTML = filteredResults.map(note => {
                     const highlightedTitle = this.highlightText(note.title, query);
                     const snippet = this.getSearchSnippet(note.transcript, query);
-                    
+
                     return `
                         <div class="search-result-item" data-note-id="${note.id}">
                             <div class="search-result-title">${highlightedTitle}</div>
@@ -1081,7 +1091,7 @@ pad(num) {
                     item.addEventListener('click', () => {
                         const noteId = parseInt(item.dataset.noteId);
                         this.closeSearchModal();
-                        
+
                         // Scroll to the note in the main list
                         setTimeout(() => {
                             const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
@@ -1109,33 +1119,33 @@ pad(num) {
 
     highlightText(text, query) {
         if (!text || !query) return this.escapeHtml(text);
-        
+
         const escapedText = this.escapeHtml(text);
         const escapedQuery = this.escapeHtml(query);
         const regex = new RegExp(`(${escapedQuery})`, 'gi');
-        
+
         return escapedText.replace(regex, '<span class="search-highlight">$1</span>');
     }
 
     getSearchSnippet(text, query, contextLength = 100) {
         if (!text || text === 'processing' || !query) return '';
-        
+
         const lowerText = text.toLowerCase();
         const lowerQuery = query.toLowerCase();
         const index = lowerText.indexOf(lowerQuery);
-        
+
         if (index === -1) return '';
-        
+
         // Get context around the match
         const start = Math.max(0, index - contextLength / 2);
         const end = Math.min(text.length, index + query.length + contextLength / 2);
-        
+
         let snippet = text.substring(start, end);
-        
+
         // Add ellipsis if needed
         if (start > 0) snippet = '...' + snippet;
         if (end < text.length) snippet = snippet + '...';
-        
+
         return this.highlightText(snippet, query);
     }
 
@@ -1156,7 +1166,7 @@ pad(num) {
     async startRecording() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
+
             this.visualizer.setup(stream);
             this.mediaRecorder = new MediaRecorder(stream);
             this.audioChunks = [];
@@ -1165,7 +1175,7 @@ pad(num) {
             this.mediaRecorder.ondataavailable = (e) => {
                 if (e.data.size > 0) this.audioChunks.push(e.data);
             };
-            
+
             this.mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
                 if (this.saveOnStop) {
@@ -1189,7 +1199,7 @@ pad(num) {
     togglePause() {
         if (this.state === 'RECORDING') {
             this.mediaRecorder.pause();
-            this.visualizer.isActive = false; 
+            this.visualizer.isActive = false;
             this.updateState('PAUSED');
             this.timer.stop();
         } else if (this.state === 'PAUSED') {
@@ -1270,20 +1280,20 @@ pad(num) {
         this.updateState('IDLE');
         this.timer.reset();
         this.visualizer.stop();
-        
+
         if (this.mediaRecorder && this.mediaRecorder.stream) {
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
         }
         this.audioChunks = [];
         this.isPaused = false;
-        
+
         if (this.isMenuExpanded) this.toggleMenu();
     }
 
     updateState(newState) {
         this.state = newState;
         const isRecordingOrPaused = (newState === 'RECORDING' || newState === 'PAUSED');
-        
+
         this.dom.idleView.classList.toggle('hidden', isRecordingOrPaused);
         this.dom.recordingView.classList.toggle('hidden', !isRecordingOrPaused);
 
@@ -1307,8 +1317,8 @@ class CalendarManager {
         this.currentYear = this.currentDate.getFullYear();
         this.isHighlightsVisible = false;
         this.selectedDay = null;
-        this.notesCache = {}; 
-        
+        this.notesCache = {};
+
         this.dom = {
             calendarBtn: document.querySelector('[title="Calendar"]'),
             calendarPopover: document.getElementById('calendar-popover'),
@@ -1324,30 +1334,30 @@ class CalendarManager {
             dayDetailsContainer: document.getElementById('day-details-container'),
             streakText: document.getElementById('streak-text')
         };
-        
+
         this.monthNames = [
             'January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'
         ];
-        
+
         this.dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        
+
         this.bindEvents();
         this.loadNotesAndRender();
     }
-    
+
     calculateStreak() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         let streak = 0;
         let currentDate = new Date(today);
-        
+
         // Count consecutive days backwards from today
         while (true) {
             const dateKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
             const notesForDay = this.notesCache[dateKey];
-            
+
             if (notesForDay && notesForDay.length > 0) {
                 streak++;
                 currentDate.setDate(currentDate.getDate() - 1);
@@ -1355,7 +1365,7 @@ class CalendarManager {
                 break;
             }
         }
-        
+
         // Update streak display
         if (streak > 0) {
             this.dom.streakText.textContent = `You are on a ${streak}-day streak and rank 686,933 globally.`;
@@ -1363,35 +1373,35 @@ class CalendarManager {
             this.dom.streakText.textContent = 'Start recording to build your streak!';
         }
     }
-    
+
     bindEvents() {
         // Toggle calendar visibility
         this.dom.calendarBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleCalendar();
         });
-        
+
         // Close calendar when clicking outside or on backdrop
         document.addEventListener('click', (e) => {
-            if (!this.dom.calendarPopover.contains(e.target) && 
+            if (!this.dom.calendarPopover.contains(e.target) &&
                 !this.dom.calendarBtn.contains(e.target)) {
                 this.closeCalendar();
             }
         });
-        
+
         // Close on backdrop click
         this.dom.calendarBackdrop.addEventListener('click', () => {
             this.closeCalendar();
         });
-        
+
         // Month navigation
         this.dom.prevMonthBtn.addEventListener('click', () => this.previousMonth());
         this.dom.nextMonthBtn.addEventListener('click', () => this.nextMonth());
-        
+
         // Highlights toggle
         this.dom.highlightsToggleBtn.addEventListener('click', () => this.toggleHighlights());
     }
-    
+
     toggleCalendar() {
         const isHidden = this.dom.calendarPopover.classList.contains('hidden');
         if (isHidden) {
@@ -1401,37 +1411,37 @@ class CalendarManager {
             this.closeCalendar();
         }
     }
-    
+
     closeCalendar() {
         this.dom.calendarPopover.classList.add('hidden');
         this.dom.calendarBackdrop.classList.add('hidden');
     }
-    
+
     async toggleHighlights() {
         this.isHighlightsVisible = !this.isHighlightsVisible;
-        
+
         if (this.isHighlightsVisible) {
             // Close day details if open
             this.hideDayDetails();
-            
+
             // Show skeleton loading
             this.dom.highlightsContainer.innerHTML = this.getSkeletonHighlights();
             this.dom.highlightsContainer.classList.remove('hidden');
             this.dom.highlightsToggleText.textContent = 'Hide highlights';
-            
+
             // Get all notes from current month
             const allNotesThisMonth = [];
             const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-            
+
             for (let day = 1; day <= daysInMonth; day++) {
                 const notes = this.getNotesForDay(this.currentYear, this.currentMonth, day);
                 allNotesThisMonth.push(...notes);
             }
-            
+
             if (allNotesThisMonth.length > 0) {
                 // Generate highlights from all notes this month
                 const highlights = await GroqService.generateDayHighlights(allNotesThisMonth);
-                
+
                 // Display highlights
                 if (highlights.length > 0) {
                     let html = '<div class="highlights-title">Highlights</div><div class="highlights-list">';
@@ -1456,7 +1466,7 @@ class CalendarManager {
             this.dom.highlightsToggleText.textContent = 'View highlights';
         }
     }
-    
+
     getSkeletonHighlights() {
         return `
             <div class="highlights-title">Highlights</div>
@@ -1467,7 +1477,7 @@ class CalendarManager {
             </div>
         `;
     }
-    
+
     getSkeletonDayNotes() {
         return `
             <div class="notes-list-container">
@@ -1486,7 +1496,7 @@ class CalendarManager {
             </div>
         `;
     }
-    
+
     previousMonth() {
         this.currentMonth--;
         if (this.currentMonth < 0) {
@@ -1496,7 +1506,7 @@ class CalendarManager {
         this.loadNotesAndRender();
         this.updateNavigationButtons();
     }
-    
+
     nextMonth() {
         this.currentMonth++;
         if (this.currentMonth > 11) {
@@ -1506,12 +1516,12 @@ class CalendarManager {
         this.loadNotesAndRender();
         this.updateNavigationButtons();
     }
-    
+
     updateNavigationButtons() {
         const today = new Date();
-        const isCurrentMonth = this.currentMonth === today.getMonth() && 
-                              this.currentYear === today.getFullYear();
-        
+        const isCurrentMonth = this.currentMonth === today.getMonth() &&
+            this.currentYear === today.getFullYear();
+
         // Disable next button if we're in current month
         if (isCurrentMonth) {
             this.dom.nextMonthBtn.classList.add('disabled');
@@ -1519,27 +1529,27 @@ class CalendarManager {
             this.dom.nextMonthBtn.classList.remove('disabled');
         }
     }
-    
+
     async loadNotesAndRender() {
         await this.loadNotesFromDB();
         this.renderCalendar();
         this.calculateStreak();
     }
-    
+
     async loadNotesFromDB() {
         try {
             const allNotes = await StorageManager.getAllRecordings();
             this.notesCache = {};
-            
+
             // Group notes by date with full data for highlights generation
             allNotes.forEach(note => {
                 const noteDate = new Date(note.timestamp);
                 const dateKey = `${noteDate.getFullYear()}-${noteDate.getMonth()}-${noteDate.getDate()}`;
-                
+
                 if (!this.notesCache[dateKey]) {
                     this.notesCache[dateKey] = [];
                 }
-                
+
                 this.notesCache[dateKey].push({
                     id: note.id,
                     title: note.title,
@@ -1552,46 +1562,46 @@ class CalendarManager {
             console.error('Error loading notes:', error);
         }
     }
-    
+
     getNotesForDay(year, month, day) {
         const dateKey = `${year}-${month}-${day}`;
         return this.notesCache[dateKey] || [];
     }
-    
+
     async showDayDetails(year, month, day) {
         const notes = this.getNotesForDay(year, month, day);
         if (notes.length === 0) return;
-        
+
         this.selectedDay = { year, month, day };
-        
+
         // Close highlights if open
         if (this.isHighlightsVisible) {
             this.isHighlightsVisible = false;
             this.dom.highlightsContainer.classList.add('hidden');
             this.dom.highlightsToggleText.textContent = 'View highlights';
         }
-        
+
         const date = new Date(year, month, day);
         const dayName = this.dayNames[date.getDay()];
         const monthName = this.monthNames[month];
         const formattedDate = `${dayName}, ${monthName.slice(0, 3)} ${day}, ${year}`;
-        
+
         // Show skeleton loading
         this.dom.dayDetailsContainer.innerHTML = `
             <a href="#" class="day-details-date">${formattedDate}</a>
             ${this.getSkeletonDayNotes()}
         `;
         this.dom.dayDetailsContainer.classList.remove('hidden');
-        
+
         // Small delay to show skeleton
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         // Build final HTML (no highlights section here - only in top highlights toggle)
         let html = `
             <a href="#" class="day-details-date">${formattedDate}</a>
             <div class="notes-list-container">
         `;
-        
+
         notes.forEach(note => {
             html += `
                 <div class="note-item-calendar" data-note-id="${note.id}">
@@ -1600,9 +1610,9 @@ class CalendarManager {
                 </div>
             `;
         });
-        
+
         html += `</div>`;
-        
+
         if (notes.length > 3) {
             html += `
                 <div class="see-all-notes-btn">
@@ -1610,57 +1620,57 @@ class CalendarManager {
                 </div>
             `;
         }
-        
+
         this.dom.dayDetailsContainer.innerHTML = html;
     }
-    
+
     hideDayDetails() {
         this.selectedDay = null;
         this.dom.dayDetailsContainer.classList.add('hidden');
     }
-    
+
     renderCalendar() {
         // Update month and year display
         this.dom.calendarMonth.textContent = this.monthNames[this.currentMonth];
         this.dom.calendarYear.textContent = this.currentYear;
-        
+
         // Clear existing calendar and hide day details
         this.dom.calendarGrid.innerHTML = '';
         this.hideDayDetails();
-        
+
         // Get first day of month (0 = Sunday, 1 = Monday, etc.)
         const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
         // Adjust to make Monday = 0
         const firstDayAdjusted = firstDay === 0 ? 6 : firstDay - 1;
-        
+
         // Get number of days in month
         const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        
+
         // Get today's date for highlighting
         const today = new Date();
-        const isCurrentMonth = this.currentMonth === today.getMonth() && 
-                              this.currentYear === today.getFullYear();
+        const isCurrentMonth = this.currentMonth === today.getMonth() &&
+            this.currentYear === today.getFullYear();
         const todayDate = today.getDate();
-        
+
         // Create calendar grid
         let dayCounter = 1;
         let totalWeeks = Math.ceil((firstDayAdjusted + daysInMonth) / 7);
-        
+
         for (let week = 0; week < totalWeeks; week++) {
             const weekRow = document.createElement('div');
             weekRow.className = 'calendar-week';
-            
+
             for (let day = 0; day < 7; day++) {
                 const dayCell = document.createElement('div');
                 dayCell.className = 'calendar-day';
-                
+
                 // Calculate if this cell should have a day number
                 const cellIndex = week * 7 + day;
-                
+
                 if (cellIndex >= firstDayAdjusted && dayCounter <= daysInMonth) {
                     const currentDay = dayCounter;
                     dayCell.textContent = currentDay;
-                    
+
                     // Check if this day has notes (dynamically from IndexedDB)
                     const notesForDay = this.getNotesForDay(this.currentYear, this.currentMonth, currentDay);
                     if (notesForDay.length > 0) {
@@ -1676,23 +1686,23 @@ class CalendarManager {
                             this.showDayDetails(this.currentYear, this.currentMonth, currentDay);
                         });
                     }
-                    
+
                     // Mark today (but don't make it black)
                     if (isCurrentMonth && currentDay === todayDate) {
                         dayCell.classList.add('today');
                     }
-                    
+
                     dayCounter++;
                 } else {
                     dayCell.classList.add('invisible');
                 }
-                
+
                 weekRow.appendChild(dayCell);
             }
-            
+
             this.dom.calendarGrid.appendChild(weekRow);
         }
-        
+
         this.updateNavigationButtons();
     }
 }
@@ -1716,81 +1726,81 @@ class ProfileModalManager {
             emailSection: document.getElementById('email-section'),
             whatsappSection: document.getElementById('whatsapp-section')
         };
-        
+
         this.portfolioUrl = 'https://archana-prabhat.vercel.app/';
         this.email = 'archanaprabhathtk@gmail.com';
-        
-    
-        const phone = "916282581851"; 
+
+
+        const phone = "916282581851";
         this.whatsappUrl = `https://wa.me/${phone}`;
-        
+
         this.bindEvents();
     }
-    
+
     bindEvents() {
         // Open modal when clicking profile circle
         if (this.dom.profileBtn) {
             this.dom.profileBtn.addEventListener('click', () => this.openModal());
         }
-        
+
         // Close modal
         if (this.dom.closeBtn) {
             this.dom.closeBtn.addEventListener('click', () => this.closeModal());
         }
-        
+
         if (this.dom.profileBackdrop) {
             this.dom.profileBackdrop.addEventListener('click', () => this.closeModal());
         }
-        
+
         // Escape key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !this.dom.profileModal.classList.contains('hidden')) {
                 this.closeModal();
             }
         });
-        
+
         // Resume download
         if (this.dom.resumeSection) {
             this.dom.resumeSection.addEventListener('click', () => this.downloadResume());
         }
-        
+
         // Portfolio link
         if (this.dom.portfolioSection) {
             this.dom.portfolioSection.addEventListener('click', () => this.openPortfolio());
         }
-        
+
         // Email
         if (this.dom.emailSection) {
             this.dom.emailSection.addEventListener('click', () => this.openEmail());
         }
-        
+
         // WhatsApp
         if (this.dom.whatsappSection) {
             this.dom.whatsappSection.addEventListener('click', () => this.openWhatsApp());
         }
     }
-    
+
     openModal() {
         this.dom.profileModal.classList.remove('hidden');
         this.dom.profileBackdrop.classList.remove('hidden');
-        
+
         // Trigger animation
         setTimeout(() => {
             this.dom.profileModal.classList.add('show');
             this.dom.profileBackdrop.classList.add('show');
         }, 10);
     }
-    
+
     closeModal() {
         this.dom.profileModal.classList.remove('show');
         this.dom.profileBackdrop.classList.remove('show');
-        
+
         setTimeout(() => {
             this.dom.profileModal.classList.add('hidden');
             this.dom.profileBackdrop.classList.add('hidden');
         }, 250);
     }
-    
+
     downloadResume() {
         // Create a temporary link to download the resume
         const link = document.createElement('a');
@@ -1800,15 +1810,15 @@ class ProfileModalManager {
         link.click();
         document.body.removeChild(link);
     }
-    
+
     openPortfolio() {
         window.open(this.portfolioUrl, '_blank');
     }
-    
+
     openEmail() {
         window.location.href = `mailto:${this.email}`;
     }
-    
+
     openWhatsApp() {
         window.open(this.whatsappUrl, '_blank');
     }
